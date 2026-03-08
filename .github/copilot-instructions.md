@@ -14,3 +14,5 @@
 
 - verifique o arquivo instruções.md para garantir que as instruções estão sendo seguidas, como o uso do logo do sistema, a estrutura de pastas, etc.
 - Anote no arquivo anotações.md o que foi feito, o que falta fazer, ideias para o projeto, etc. para manter um registro do progresso do projeto e facilitar a comunicação entre os desenvolvedores.
+
+- sistema em padrão brasileiro, dinheiro em reais, datas no formato dia/mês/ano, etc.
