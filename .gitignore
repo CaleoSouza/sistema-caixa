@@ -1,0 +1,38 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg
+*.egg-info/
+dist/
+build/
+*.spec
+
+# Ambiente virtual
+venv/
+env/
+.venv/
+
+# Banco de dados
+*.db
+*.sqlite
+*.sqlite3
+
+# Pyinstaller
+*.exe
+*.app
+
+# Imagens de upload (não versionar conteúdo gerado pelo usuário)
+imagens/produtos/*
+imagens/clientes/*
+!imagens/produtos/.gitkeep
+!imagens/clientes/.gitkeep
+
+# VS Code
+.vscode/
+
+# Sistema operacional
+.DS_Store
+Thumbs.db
+desktop.ini
