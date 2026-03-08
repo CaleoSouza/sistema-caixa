@@ -12,3 +12,5 @@
 - Verifique se não a nada duplicado, como funções, variáveis, classes, etc.
 - o arquivo complex_example.py é um exemplo de design para manter o padrão, tema claro, botões azuis.
 
+- verifique o arquivo instruções.md para garantir que as instruções estão sendo seguidas, como o uso do logo do sistema, a estrutura de pastas, etc.
+- Anote no arquivo anotações.md o que foi feito, o que falta fazer, ideias para o projeto, etc. para manter um registro do progresso do projeto e facilitar a comunicação entre os desenvolvedores.

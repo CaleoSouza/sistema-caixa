@@ -28,9 +28,10 @@ imagens/produtos/*
 imagens/clientes/*
 !imagens/produtos/.gitkeep
 !imagens/clientes/.gitkeep
-
+!artes/.gitkeep
 # VS Code
 .vscode/
+artes/
 
 # Sistema operacional
 .DS_Store
