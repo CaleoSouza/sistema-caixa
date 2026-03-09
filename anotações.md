@@ -25,6 +25,12 @@ Repositório: https://github.com/CaleoSouza/sistema-caixa
       - CPF: 000.000.000-00
       - Telefone: (00) 00000-0000
 
+### Ajustes pós-Etapa 1 (09/03/2026)
+- [x] Ícones dos botões da sidebar: mantidos como emojis Unicode (Bootstrap Icons descartado — requer lib Cairo não disponível no Windows)
+- [x] Cards do Dashboard em Full HD corrigidos: removido weight da row dos cards para não crescerem verticalmente
+- [x] Rodapé "Sistema desenvolvido por" fixado na parte inferior com linha espaçadora flexível (row com weight=1)
+- [x] Logo da empresa: carrega `imagens/outros/souza.png` (PNG transparente, redimensionado proporcionalmente para 110x110 com Pillow); fallback para placeholder verde se imagem não existir
+
 --------------------
 
 ## 🔄 O que falta fazer
@@ -72,6 +78,7 @@ Repositório: https://github.com/CaleoSouza/sistema-caixa
 - Crediário: cliente com `tem_crediario = 1` e `debito_atual > 0` aparece como "em atraso" no dashboard
 - Estoque mínimo por produto: campo `estoque_minimo` na tabela produtos (padrão = 5 unidades)
 - Imagens de produtos e clientes são salvas na pasta local e o caminho fica registrado no banco
+- Logo do sistema: usar `imagens/outros/souza.png` como referência; futuro logo real pode substituir esse arquivo com o mesmo nome
 
 --------------------
 
@@ -79,5 +86,7 @@ Repositório: https://github.com/CaleoSouza/sistema-caixa
 
 - Arquivo `nul` criado acidentalmente no primeiro mkdir via cmd — removido manualmente
 - Comando `python` não reconhecido no bash do Windows — usar `py` (Windows Launcher)
+- Bootstrap Icons SVG: biblioteca cairosvg requer libcairo-2.dll no Windows (não disponível) — descartado, ficamos com emojis Unicode
+- Cards do Dashboard cresciam em Full HD — corrigido removendo `weight=1` da linha dos cards e usando `sticky="ew"` no lugar de `"nsew"`
 
 --------------------

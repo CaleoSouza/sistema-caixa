@@ -3,8 +3,13 @@ home_view.py - Tela inicial (Dashboard) do Sistema Caixa.
 Exibe o logo, nome da empresa e os cards de visão geral (Crediário, Produtos, Vendas).
 """
 
+import os
 import customtkinter as ctk
+from PIL import Image
 from database import conectar
+
+# Tamanho fixo do logo na interface
+LOGO_SIZE = 110
 
 
 class HomeView(ctk.CTkFrame):
@@ -12,9 +17,9 @@ class HomeView(ctk.CTkFrame):
         super().__init__(parent, fg_color="#e8e8e8", corner_radius=0)
         self.controller = controller
 
-        # Layout principal: 3 linhas (cabeçalho, visão geral, rodapé)
+        # Layout: row 0=cabeçalho, row 1=cards, row 2=espaço flexível, row 3=rodapé
         self.grid_columnconfigure(0, weight=1)
-        self.grid_rowconfigure(1, weight=1)
+        self.grid_rowconfigure(2, weight=1)  # espaço que empurra o rodapé para baixo
 
         self._criar_cabecalho()
         self._criar_visao_geral()
@@ -29,22 +34,33 @@ class HomeView(ctk.CTkFrame):
         frame.grid(row=0, column=0, padx=60, pady=(50, 10), sticky="ew")
         frame.grid_columnconfigure(1, weight=1)
 
-        # Logo da empresa (placeholder verde — substituir por CTkImage futuramente)
-        logo_frame = ctk.CTkFrame(
-            frame,
-            width=110,
-            height=110,
-            fg_color="#4CAF50",
-            corner_radius=12,
-        )
-        logo_frame.grid(row=0, column=0, rowspan=2, padx=(0, 30))
-        logo_frame.grid_propagate(False)
-        ctk.CTkLabel(
-            logo_frame,
-            text="Logo da\nempresa",
-            text_color="white",
-            font=ctk.CTkFont(size=13),
-        ).place(relx=0.5, rely=0.5, anchor="center")
+        # --- Logo da empresa ---
+        logo_img = self._carregar_logo()
+        if logo_img:
+            # Exibe a imagem sem fundo
+            ctk.CTkLabel(
+                frame,
+                image=logo_img,
+                text="",
+                fg_color="transparent",
+            ).grid(row=0, column=0, rowspan=2, padx=(0, 30))
+        else:
+            # Fallback: placeholder verde caso a imagem não exista
+            logo_frame = ctk.CTkFrame(
+                frame,
+                width=LOGO_SIZE,
+                height=LOGO_SIZE,
+                fg_color="#4CAF50",
+                corner_radius=12,
+            )
+            logo_frame.grid(row=0, column=0, rowspan=2, padx=(0, 30))
+            logo_frame.grid_propagate(False)
+            ctk.CTkLabel(
+                logo_frame,
+                text="Logo da\nempresa",
+                text_color="white",
+                font=ctk.CTkFont(size=13),
+            ).place(relx=0.5, rely=0.5, anchor="center")
 
         # Nome da empresa (lido do banco de dados)
         nome_empresa = self._obter_config("nome_empresa") or "Nome da Empresa"
@@ -68,9 +84,9 @@ class HomeView(ctk.CTkFrame):
     def _criar_visao_geral(self):
         """Seção com container cinza e 3 cards: Crediário, Produtos e Vendas."""
         container = ctk.CTkFrame(self, fg_color="#cccccc", corner_radius=14)
-        container.grid(row=1, column=0, padx=60, pady=20, sticky="nsew")
+        # sticky="ew" — container não cresce verticalmente
+        container.grid(row=1, column=0, padx=60, pady=20, sticky="ew")
         container.grid_columnconfigure((0, 1, 2), weight=1)
-        container.grid_rowconfigure(1, weight=1)
 
         ctk.CTkLabel(
             container,
@@ -95,7 +111,8 @@ class HomeView(ctk.CTkFrame):
     def _criar_card(self, parent, icone, titulo, numero, descricao, cor_descricao, coluna):
         """Cria um card individual na seção Visão Geral."""
         card = ctk.CTkFrame(parent, fg_color="white", corner_radius=14)
-        card.grid(row=1, column=coluna, padx=15, pady=(0, 20), sticky="nsew", ipadx=10, ipady=10)
+        # sticky="ew" — card não cresce verticalmente, mantém tamanho fixo pelo conteúdo
+        card.grid(row=1, column=coluna, padx=15, pady=(0, 20), sticky="ew", ipadx=10, ipady=10)
         card.grid_columnconfigure(0, weight=1)
 
         # Título com ícone
@@ -126,13 +143,36 @@ class HomeView(ctk.CTkFrame):
     # Rodapé
     # ------------------------------------------------------------------
     def _criar_rodape(self):
-        """Rodapé com crédito do desenvolvedor."""
+        """Rodapé com crédito do desenvolvedor — fixo na parte inferior."""
         ctk.CTkLabel(
             self,
             text="Sistema desenvolvido por: Caléo Souza Santos",
             font=ctk.CTkFont(size=12),
             text_color="#888888",
-        ).grid(row=2, column=0, pady=(8, 18))
+        ).grid(row=3, column=0, pady=(8, 18))
+
+    # ------------------------------------------------------------------
+    # Carregamento do logo
+    # ------------------------------------------------------------------
+    def _carregar_logo(self) -> ctk.CTkImage | None:
+        """
+        Carrega a imagem de logo da pasta imagens/outros/.
+        Redimensiona proporcionalmente para caber em LOGO_SIZE x LOGO_SIZE.
+        Preserva transparência (PNG sem fundo).
+        """
+        caminho = os.path.join(
+            os.path.dirname(__file__), "..", "imagens", "outros", "souza.png"
+        )
+        caminho = os.path.normpath(caminho)
+        if not os.path.exists(caminho):
+            return None
+        try:
+            img = Image.open(caminho).convert("RGBA")
+            # Redimensiona mantendo proporção (thumbnail não distorce)
+            img.thumbnail((LOGO_SIZE, LOGO_SIZE), Image.LANCZOS)
+            return ctk.CTkImage(light_image=img, dark_image=img, size=img.size)
+        except Exception:
+            return None
 
     # ------------------------------------------------------------------
     # Consultas ao banco de dados

@@ -46,12 +46,11 @@ Sistema Caixa/
 │   └── venda_model.py
 │
 ├── imagens/                     # Imagens do sistema
-│   ├── bootstrap-icons/         # Ícones do sistema (quando terminar o projeto será apagados os icones que não forem usados)
 │   ├── produtos/                # Fotos de upload dos produtos
 │   ├── clientes/                # Fotos de upload dos clientes
 │   └── outros/                  # Ícones, logos e imagens diversas
 |
- design-interface/            # Referência visual do projeto
+├── design-interface/            # Referência visual do projeto
 │   └── complex_example.py
 |
 ├── anotações.md                    # Anotações do que foi feito, o que falta fazer, ideias para o projeto, etc.
