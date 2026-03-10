@@ -31,19 +31,35 @@ Repositório: https://github.com/CaleoSouza/sistema-caixa
 - [x] Rodapé "Sistema desenvolvido por" fixado na parte inferior com linha espaçadora flexível (row com weight=1)
 - [x] Logo da empresa: carrega `imagens/outros/souza.png` (PNG transparente, redimensionado proporcionalmente para 110x110 com Pillow); fallback para placeholder verde se imagem não existir
 
---------------------
+### Etapa 2a - Produtos / Listagem (concluída em 09/03/2026)
+- [x] `models/produto_model.py` — CRUD completo no SQLite (listar, buscar, inserir, atualizar, excluir lógica, resumo)
+- [x] `controllers/produto_controller.py` — validação, cálculo de status do estoque (sem_estoque, estoque_baixo, em_estoque, estoque_alto)
+- [x] `views/produtos_view.py` — tela de listagem com:
+      - Título com ícone + botão "Adicionar Produto"
+      - Busca em tempo real (KeyRelease)
+      - Tabela scrollável com colunas: ID, Nome, Quantidade, Preço, Total, Status, Ações
+      - Status colorido: Estoque Alto (verde), Em estoque (preto), Estoque baixo (laranja), Sem estoque (vermelho)
+      - Botões de editar (✏️) e excluir (🗑️) por linha com confirmação
+      - 5 cards de resumo na parte inferior: Total de Produtos, Itens em Estoque, Valor Total do Estoque, Estoque Baixo, Próximo a Vencer
 
-## 🔄 O que falta fazer
+--------------------
 
 ### Etapa 2 - Produtos
 - [ ] `models/produto_model.py` — consultas ao banco (CRUD)
 - [ ] `controllers/produto_controller.py` — lógica de negócio
-- [ ] `views/produtos_view.py` — tela completa com:
-      - Listagem de produtos em tabela
-      - Formulário de cadastro/edição
-      - Upload de imagem do produto
-      - Controle de estoque
-      - Geração de código de barras
+- [x] `views/produtos_view.py` — tela de listagem (concluída na Etapa 2a)
+
+### Etapa 2b - Produtos / Formulário (próxima)
+- [ ] `views/produto_form.py` (modal/janela separada) com:
+      - Campos: Nome, Descrição, Categoria, Preço de Venda, Preço de Custo, Quantidade, Estoque Mínimo, Código de Barras
+      - Upload de imagem do produto (salvar em imagens/produtos/)
+      - Botão Salvar e Cancelar
+      - Modo edição: pré-preenche os campos com os dados do produto selecionado
+      - Após salvar: volta para a listagem e recarrega a tabela
+
+### Etapa 2c - Produtos / Código de Barras
+      - Geração de código de barras por produto
+      - Consulta por código de barras na tela de Carrinho
 
 ### Etapa 3 - Clientes
 - [ ] `models/cliente_model.py`

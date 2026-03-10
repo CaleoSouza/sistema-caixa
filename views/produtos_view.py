@@ -7,6 +7,7 @@ import customtkinter as ctk
 import tkinter as tk
 from tkinter import messagebox
 from controllers.produto_controller import obter_lista, obter_resumo, remover
+from views.produto_form import ProdutoForm
 from utils import formatar_moeda
 
 
@@ -267,9 +268,17 @@ class ProdutosView(ctk.CTkFrame):
     # Ações
     # ------------------------------------------------------------------
     def _abrir_formulario(self, produto_id: int = None):
-        """Abre o formulário de cadastro/edição (implementado na Etapa 2b)."""
-        # Placeholder — será implementado na próxima parte
-        messagebox.showinfo("Em breve", "Formulário de produto será implementado na próxima etapa.")
+        """Navega para o formulário de cadastro (novo) ou edição dentro da janela principal."""
+        from views.produtos_view import ProdutosView
+
+        def voltar():
+            self.controller.mostrar_tela(ProdutosView)
+
+        self.controller.mostrar_tela(
+            ProdutoForm,
+            produto_id=produto_id,
+            on_voltar=voltar,
+        )
 
     def _confirmar_exclusao(self, produto_id: int, nome: str):
         """Pede confirmação antes de excluir o produto."""

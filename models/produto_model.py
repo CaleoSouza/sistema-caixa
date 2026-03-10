@@ -19,18 +19,21 @@ def listar_produtos(busca: str = "") -> list:
     if busca:
         termo = f"%{busca}%"
         rows = conn.execute(
-            """SELECT id, nome, categoria, preco, preco_custo, quantidade,
-                      estoque_minimo, codigo_barras, imagem
+            """SELECT id, nome, categoria, fornecedor, preco, preco_custo,
+                      quantidade, estoque_minimo, codigo_barras,
+                      data_validade, imagem
                FROM produtos
                WHERE ativo = 1
-                 AND (nome LIKE ? OR categoria LIKE ? OR codigo_barras LIKE ?)
+                 AND (nome LIKE ? OR categoria LIKE ? OR codigo_barras LIKE ?
+                      OR fornecedor LIKE ?)
                ORDER BY nome""",
-            (termo, termo, termo),
+            (termo, termo, termo, termo),
         ).fetchall()
     else:
         rows = conn.execute(
-            """SELECT id, nome, categoria, preco, preco_custo, quantidade,
-                      estoque_minimo, codigo_barras, imagem
+            """SELECT id, nome, categoria, fornecedor, preco, preco_custo,
+                      quantidade, estoque_minimo, codigo_barras,
+                      data_validade, imagem
                FROM produtos
                WHERE ativo = 1
                ORDER BY nome""",
@@ -87,9 +90,15 @@ def resumo_produtos() -> dict:
            WHERE ativo = 1 AND quantidade > 0 AND quantidade <= estoque_minimo"""
     ).fetchone()[0]
 
-    # "Próximo a vencer" — campo disponível para futura implementação de validade
-    # Por enquanto retorna 0 pois a tabela não tem campo de validade ainda
-    proximos_vencer = 0
+    # Produtos com data_validade válida e expirando nos próximos 30 dias
+    proximos_vencer = conn.execute(
+        """SELECT COUNT(*) FROM produtos
+           WHERE ativo = 1
+             AND data_validade IS NOT NULL
+             AND data_validade != ''
+             AND date(data_validade) >= date('now')
+             AND date(data_validade) <= date('now', '+30 days')"""
+    ).fetchone()[0]
 
     conn.close()
     return {
@@ -105,23 +114,45 @@ def resumo_produtos() -> dict:
 # Escrita
 # ------------------------------------------------------------------
 
+def codigo_barras_existe(codigo: str, excluir_id: int = None) -> bool:
+    """
+    Verifica se um código de barras já está cadastrado.
+    Se 'excluir_id' for informado, ignora o próprio produto (para edição).
+    """
+    conn = conectar()
+    if excluir_id:
+        row = conn.execute(
+            "SELECT id FROM produtos WHERE codigo_barras = ? AND id != ? AND ativo = 1",
+            (codigo, excluir_id),
+        ).fetchone()
+    else:
+        row = conn.execute(
+            "SELECT id FROM produtos WHERE codigo_barras = ? AND ativo = 1",
+            (codigo,),
+        ).fetchone()
+    conn.close()
+    return row is not None
+
+
 def inserir_produto(dados: dict) -> int:
     """Insere um novo produto e retorna o ID gerado."""
     conn = conectar()
     cursor = conn.execute(
         """INSERT INTO produtos
-               (nome, descricao, categoria, preco, preco_custo,
-                quantidade, estoque_minimo, codigo_barras, imagem)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+               (nome, descricao, categoria, fornecedor, preco, preco_custo,
+                quantidade, estoque_minimo, codigo_barras, data_validade, imagem)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
         (
             dados.get("nome", ""),
             dados.get("descricao", ""),
             dados.get("categoria", ""),
+            dados.get("fornecedor", "") or None,
             dados.get("preco", 0.0),
             dados.get("preco_custo", 0.0),
             dados.get("quantidade", 0),
             dados.get("estoque_minimo", 5),
             dados.get("codigo_barras") or None,
+            dados.get("data_validade") or None,
             dados.get("imagem") or None,
         ),
     )
@@ -136,19 +167,22 @@ def atualizar_produto(produto_id: int, dados: dict) -> bool:
     conn = conectar()
     conn.execute(
         """UPDATE produtos SET
-               nome = ?, descricao = ?, categoria = ?, preco = ?, preco_custo = ?,
-               quantidade = ?, estoque_minimo = ?, codigo_barras = ?, imagem = ?,
+               nome = ?, descricao = ?, categoria = ?, fornecedor = ?,
+               preco = ?, preco_custo = ?, quantidade = ?, estoque_minimo = ?,
+               codigo_barras = ?, data_validade = ?, imagem = ?,
                atualizado_em = datetime('now','localtime')
            WHERE id = ? AND ativo = 1""",
         (
             dados.get("nome", ""),
             dados.get("descricao", ""),
             dados.get("categoria", ""),
+            dados.get("fornecedor", "") or None,
             dados.get("preco", 0.0),
             dados.get("preco_custo", 0.0),
             dados.get("quantidade", 0),
             dados.get("estoque_minimo", 5),
             dados.get("codigo_barras") or None,
+            dados.get("data_validade") or None,
             dados.get("imagem") or None,
             produto_id,
         ),

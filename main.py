@@ -130,12 +130,12 @@ class App(ctk.CTk):
     # ------------------------------------------------------------------
     # Troca de telas
     # ------------------------------------------------------------------
-    def mostrar_tela(self, TelaCls):
+    def mostrar_tela(self, TelaCls, **kwargs):
         """Destroi a tela atual e carrega a nova view na área de conteúdo."""
         if self.tela_atual is not None:
             self.tela_atual.destroy()
 
-        self.tela_atual = TelaCls(self.area_conteudo, self)
+        self.tela_atual = TelaCls(self.area_conteudo, self, **kwargs)
         self.tela_atual.grid(row=0, column=0, sticky="nsew")
 
 

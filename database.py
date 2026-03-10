@@ -45,11 +45,13 @@ def criar_tabelas():
             nome             TEXT    NOT NULL,
             descricao        TEXT,
             categoria        TEXT,
+            fornecedor       TEXT,
             preco            REAL    NOT NULL DEFAULT 0.0,
             preco_custo      REAL             DEFAULT 0.0,
             quantidade       INTEGER NOT NULL DEFAULT 0,
             estoque_minimo   INTEGER          DEFAULT 5,
             codigo_barras    TEXT    UNIQUE,
+            data_validade    TEXT,
             imagem           TEXT,
             ativo            INTEGER          DEFAULT 1,
             criado_em        TEXT             DEFAULT (datetime('now','localtime')),
@@ -115,6 +117,12 @@ def criar_tabelas():
     """)
 
     # ------------------------------------------------------------------
+    # Migração: adiciona colunas novas em bancos já existentes
+    # Preserva todos os dados cadastrados anteriormente
+    # ------------------------------------------------------------------
+    _migrar_tabelas(conn)
+
+    # ------------------------------------------------------------------
     # Valores padrão das configurações do sistema
     # ------------------------------------------------------------------
     configs_padrao = [
@@ -130,6 +138,27 @@ def criar_tabelas():
 
     conn.commit()
     conn.close()
+
+
+def _migrar_tabelas(conn):
+    """
+    Adiciona colunas criadas após a versão inicial do banco.
+    Usa ALTER TABLE para não perder dados já cadastrados.
+    """
+    # Lê as colunas atuais da tabela produtos
+    colunas = [
+        row[1] for row in conn.execute("PRAGMA table_info(produtos)")
+    ]
+
+    # Mapeamento: nome_da_coluna → definição SQL
+    novas_colunas = [
+        ("fornecedor",    "TEXT"),
+        ("data_validade", "TEXT"),
+    ]
+
+    for nome, tipo in novas_colunas:
+        if nome not in colunas:
+            conn.execute(f"ALTER TABLE produtos ADD COLUMN {nome} {tipo}")
 
 
 # Permite inicializar o banco executando este arquivo diretamente
