@@ -45,7 +45,7 @@ class ProdutoDetalhe(ctk.CTkFrame):
         self.on_voltar   = on_voltar
 
         self.grid_columnconfigure(0, weight=1)
-        self.grid_rowconfigure(1, weight=1)
+        self.grid_rowconfigure(1, weight=0)
 
         # Carrega o produto antes de construir a UI
         self.produto = obter_por_id(produto_id)
@@ -68,10 +68,9 @@ class ProdutoDetalhe(ctk.CTkFrame):
 
         # --- Área de conteúdo (imagem + informações) ---
         conteudo = ctk.CTkFrame(self, fg_color="transparent")
-        conteudo.grid(row=1, column=0, padx=30, pady=(0, 20), sticky="nsew")
+        conteudo.grid(row=1, column=0, padx=30, pady=(0, 20), sticky="ew")
         conteudo.grid_columnconfigure(0, weight=2)  # coluna imagem
         conteudo.grid_columnconfigure(1, weight=5)  # coluna info (maior)
-        conteudo.grid_rowconfigure(0, weight=1)
 
         self._criar_card_imagem(conteudo, p)
         self._criar_card_info(conteudo, p)
@@ -136,7 +135,6 @@ class ProdutoDetalhe(ctk.CTkFrame):
         card = ctk.CTkFrame(pai, fg_color="white", corner_radius=12)
         card.grid(row=0, column=0, padx=(0, 12), sticky="nsew")
         card.grid_columnconfigure(0, weight=1)
-        card.grid_rowconfigure(0, weight=1)
 
         imagem_nome = p.get("imagem")
         if imagem_nome:
@@ -147,7 +145,7 @@ class ProdutoDetalhe(ctk.CTkFrame):
                 ctk_img = ctk.CTkImage(light_image=img, size=(img.width, img.height))
                 lbl = ctk.CTkLabel(card, image=ctk_img, text="")
                 lbl._image = ctk_img  # evita garbage collection
-                lbl.grid(row=0, column=0, padx=20, pady=30)
+                lbl.grid(row=0, column=0, padx=20, pady=20)
                 return
             except Exception:
                 pass  # fallback para placeholder abaixo
@@ -159,7 +157,7 @@ class ProdutoDetalhe(ctk.CTkFrame):
             font=ctk.CTkFont(size=16),
             text_color="#cccccc",
             justify="center",
-        ).grid(row=0, column=0, padx=20, pady=60)
+        ).grid(row=0, column=0, padx=20, pady=20)
 
     # ------------------------------------------------------------------
     # Card direito: informações do produto
@@ -167,7 +165,7 @@ class ProdutoDetalhe(ctk.CTkFrame):
 
     def _criar_card_info(self, pai, p: dict):
         card = ctk.CTkFrame(pai, fg_color="white", corner_radius=12)
-        card.grid(row=0, column=1, sticky="nsew")
+        card.grid(row=0, column=1, sticky="ew")
         card.grid_columnconfigure(1, weight=1)
 
         status = p.get("status_estoque", "em_estoque")
@@ -196,7 +194,7 @@ class ProdutoDetalhe(ctk.CTkFrame):
         ]
 
         linha = 0
-        pad_y = 6
+        pad_y = 4
 
         for rotulo, valor in campos:
             ctk.CTkLabel(
@@ -233,7 +231,7 @@ class ProdutoDetalhe(ctk.CTkFrame):
             text=badge_texto,
             font=ctk.CTkFont(size=12, weight="bold"),
             text_color=badge_cor,
-        ).grid(padx=10, pady=4)
+        ).grid(padx=10, pady=3)
 
         linha += 1
 
@@ -253,13 +251,13 @@ class ProdutoDetalhe(ctk.CTkFrame):
                 fg_color="#f5f5f5",
                 border_width=0,
                 font=ctk.CTkFont(size=13),
-                height=80,
+                height=60,
                 corner_radius=8,
                 state="normal",
             )
             caixa.insert("1.0", descricao)
             caixa.configure(state="disabled")
-            caixa.grid(row=linha, column=1, padx=(0, 20), pady=(10, 16), sticky="ew")
+            caixa.grid(row=linha, column=1, padx=(0, 20), pady=(6, 12), sticky="ew")
 
     # ------------------------------------------------------------------
     # Ações
