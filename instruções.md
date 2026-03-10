@@ -22,38 +22,46 @@ Estrutura de Pastas:
 
 Sistema Caixa/
 │
-├── main.py                      # Ponto de entrada da aplicação
-├── database.py                  # Conexão e criação das tabelas SQLite
+├── main.py                      # Ponto de entrada da aplicação (logging + painel Ctrl+L)
+├── database.py                  # Conexão e criação das tabelas SQLite + migração
+├── utils.py                     # Funções de formatação padrão brasileiro (moeda, data, CPF, etc.)
+│
+├── .github/
+│   └── copilot-instructions.md  # Instruções do GitHub Copilot
 │
 ├── artes/                       # ignore essa pasta, é apenas para rascunhos de design e testes de interface
-|
+│
 ├── views/                       # Telas (uma por categoria)
-│   ├── home_view.py             # Tela inicial (dashboard com atalhos das categorias)
-│   ├── produtos_view.py
-│   ├── clientes_view.py
-│   ├── carrinho_view.py
-│   ├── relatorios_view.py
-│   └── configuracoes_view.py
+│   ├── home_view.py             # Tela inicial (dashboard com cards clicáveis)
+│   ├── produtos_view.py         # Listagem de produtos com filtros e busca por código de barras
+│   ├── produto_form.py          # Formulário de cadastro/edição de produto (in-window)
+│   ├── produto_detalhe.py       # Detalhe do produto com editar/excluir (in-window)
+│   ├── clientes_view.py         # (Etapa 3 - pendente)
+│   ├── carrinho_view.py         # (Etapa 4 - pendente)
+│   ├── relatorios_view.py       # (Etapa 5 - pendente)
+│   └── configuracoes_view.py    # (Etapa 6 - pendente)
 │
 ├── controllers/                 # Lógica de negócio
-│   ├── produto_controller.py
-│   ├── cliente_controller.py
-│   └── venda_controller.py
+│   ├── produto_controller.py    # CRUD produtos, EAN-13, status estoque, imagens
+│   ├── cliente_controller.py    # (Etapa 3 - pendente)
+│   └── venda_controller.py      # (Etapa 4 - pendente)
 │
 ├── models/                      # Consultas ao banco de dados
-│   ├── produto_model.py
-│   ├── cliente_model.py
-│   └── venda_model.py
+│   ├── produto_model.py         # SQL produtos: listar, filtros, resumo, estoque baixo, próx. vencer
+│   ├── cliente_model.py         # (Etapa 3 - pendente)
+│   └── venda_model.py           # (Etapa 4 - pendente)
 │
 ├── imagens/                     # Imagens do sistema
 │   ├── produtos/                # Fotos de upload dos produtos
 │   ├── clientes/                # Fotos de upload dos clientes
 │   └── outros/                  # Ícones, logos e imagens diversas
-|
+│       ├── souza.png            # Logo exibido na HomeView
+│       └── CS_logo.png          # Logo do sistema (barra da janela / ícone .exe)
+│
 ├── design-interface/            # Referência visual do projeto
 │   └── complex_example.py
-|
-├── anotações.md                    # Anotações do que foi feito, o que falta fazer, ideias para o projeto, etc.
+│
+├── anotações.md                 # Registro de progresso, o que foi feito e o que falta
 └── instruções.md
 
 --------------------
