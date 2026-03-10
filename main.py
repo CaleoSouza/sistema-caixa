@@ -1,12 +1,112 @@
-"""
+""" 
 main.py - Ponto de entrada do Sistema Caixa.
 Inicializa a janela principal, sidebar de navegação e gerencia a troca de telas.
 """
 
+import logging
 import customtkinter as ctk
 from database import criar_tabelas
 from views.home_view import HomeView
 from views.produtos_view import ProdutosView
+
+
+# ------------------------------------------------------------------
+# Configuração do sistema de logging
+# ------------------------------------------------------------------
+logging.basicConfig(
+    level=logging.DEBUG,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    datefmt="%H:%M:%S",
+)
+log = logging.getLogger("SistemaCaixa")
+
+
+# ------------------------------------------------------------------
+# Handler que envia logs para o painel visual do app
+# ------------------------------------------------------------------
+class _PainelLogHandler(logging.Handler):
+    """Handler de logging que empurra mensagens para o CTkTextbox do painel."""
+
+    def __init__(self, textbox: ctk.CTkTextbox):
+        super().__init__()
+        self._textbox = textbox
+        self.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(message)s", "%H:%M:%S"))
+
+    def emit(self, record):
+        msg = self.format(record) + "\n"
+        # Cores por nível
+        cor = {"DEBUG": "#888888", "INFO": "#1a1a1a", "WARNING": "#d97706",
+               "ERROR": "#e53935", "CRITICAL": "#b71c1c"}.get(record.levelname, "#1a1a1a")
+        try:
+            self._textbox.configure(state="normal")
+            self._textbox.insert("end", msg)
+            self._textbox.tag_add(record.levelname, f"end-{len(msg)+1}c", "end-1c")
+            self._textbox.tag_config(record.levelname, foreground=cor)
+            self._textbox.see("end")
+            self._textbox.configure(state="disabled")
+        except Exception:
+            pass  # janela pode estar fechada
+
+
+# ------------------------------------------------------------------
+# Janela de log (temporária para desenvolvimento)
+# ------------------------------------------------------------------
+class PainelLog(ctk.CTkToplevel):
+    """Janela flutuante com os logs do sistema em tempo real. Ctrl+L para abrir/fechar."""
+
+    def __init__(self, master):
+        super().__init__(master)
+        self.title("🪵 Log do Sistema")
+        self.geometry("800x400")
+        self.resizable(True, True)
+        self.attributes("-topmost", True)
+
+        self.grid_columnconfigure(0, weight=1)
+        self.grid_rowconfigure(0, weight=1)
+
+        # Área de texto com scroll
+        self._txt = ctk.CTkTextbox(
+            self,
+            font=ctk.CTkFont(family="Consolas", size=12),
+            fg_color="#1e1e1e",
+            text_color="#d4d4d4",
+            corner_radius=0,
+            state="disabled",
+        )
+        self._txt.grid(row=0, column=0, sticky="nsew")
+
+        # Barra inferior: botão limpar
+        barra = ctk.CTkFrame(self, fg_color="#2d2d2d", height=36, corner_radius=0)
+        barra.grid(row=1, column=0, sticky="ew")
+        ctk.CTkButton(
+            barra, text="🗑 Limpar", width=90, height=28,
+            fg_color="#444", hover_color="#666",
+            font=ctk.CTkFont(size=12),
+            command=self._limpar,
+        ).pack(side="right", padx=8, pady=4)
+
+        ctk.CTkLabel(
+            barra, text="Ctrl+L para fechar",
+            font=ctk.CTkFont(size=11), text_color="#888888",
+        ).pack(side="left", padx=10)
+
+        # Registra o handler de logging nesta janela
+        self._handler = _PainelLogHandler(self._txt)
+        logging.getLogger().addHandler(self._handler)
+        log.info("Painel de log aberto.")
+
+        # Remove o handler ao fechar
+        self.protocol("WM_DELETE_WINDOW", self._fechar)
+
+    def _limpar(self):
+        self._txt.configure(state="normal")
+        self._txt.delete("1.0", "end")
+        self._txt.configure(state="disabled")
+
+    def _fechar(self):
+        logging.getLogger().removeHandler(self._handler)
+        self.destroy()
+
 
 
 # Configuração global do tema
@@ -20,14 +120,21 @@ class App(ctk.CTk):
 
         # Inicializa o banco de dados na primeira execução
         criar_tabelas()
+        log.info("Banco de dados inicializado.")
+
+        self._painel_log = None  # referência ao painel de log (Ctrl+L)
 
         self._configurar_janela()
         self._criar_layout()
+
+        # Atalho global: Ctrl+L abre/fecha o painel de log
+        self.bind_all("<Control-l>", lambda e: self._toggle_painel_log())
 
         # Exibe a tela inicial (dashboard)
         self.tela_atual = None
         self.btn_ativo = None
         self.mostrar_tela(HomeView)
+        log.info("Aplicação iniciada.")
 
     # ------------------------------------------------------------------
     # Configurar janela
@@ -138,11 +245,21 @@ class App(ctk.CTk):
     # ------------------------------------------------------------------
     def mostrar_tela(self, TelaCls, **kwargs):
         """Destroi a tela atual e carrega a nova view na área de conteúdo."""
+        log.debug(f"Navegando para: {TelaCls.__name__}")
         if self.tela_atual is not None:
             self.tela_atual.destroy()
 
         self.tela_atual = TelaCls(self.area_conteudo, self, **kwargs)
         self.tela_atual.grid(row=0, column=0, sticky="nsew")
+
+
+    def _toggle_painel_log(self):
+        """Abre ou fecha o painel de log com Ctrl+L."""
+        if self._painel_log is None or not self._painel_log.winfo_exists():
+            self._painel_log = PainelLog(self)
+        else:
+            self._painel_log._fechar()
+            self._painel_log = None
 
 
 # ------------------------------------------------------------------
