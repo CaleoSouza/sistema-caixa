@@ -25,6 +25,21 @@ Repositório: https://github.com/CaleoSouza/sistema-caixa
       - CPF: 000.000.000-00
       - Telefone: (00) 00000-0000
 
+### Polimentos UX - Produtos (09/03/2026)
+- [x] Linhas da tabela de produtos completamente clicáveis (cursor hand2, hover sublinhado no nome)
+- [x] Botão "Menu" da sidebar clicável → retorna para HomeView com efeito hover azul
+- [x] Cards "Estoque Baixo" e "Próximo a Vencer (30 dias)" clicáveis como filtros:
+      - Toggle: clicar no card ativo remove o filtro
+      - Card ativo fica com fundo amarelo #fff3cd
+      - Badge na barra de busca indica filtro ativo com instrução de remoção
+      - Digitar na busca limpa o filtro de card automaticamente
+      - Funções adicionadas: listar_estoque_baixo(), listar_proximos_vencer() (model) e obter_estoque_baixo(), obter_proximos_vencer() (controller)
+- [x] Card "Produtos" da HomeView clicável → abre lista de produtos com filtro estoque_baixo ativo
+      - Apenas o card Produtos tem ação; Crediário e Vendas permanecem estáticos
+      - Efeito hover azul claro #f0f7ff em todo o card
+- [x] ProdutosView aceita filtro_inicial como parâmetro para abrir já filtrado
+- [x] Busca de produtos por leitor de código de barras funciona nativamente (KeyRelease captura a leitura; campo codigo_barras está no WHERE da query)
+
 ### Ajustes pós-Etapa 1 (09/03/2026)
 - [x] Ícones dos botões da sidebar: mantidos como emojis Unicode (Bootstrap Icons descartado — requer lib Cairo não disponível no Windows)
 - [x] Cards do Dashboard em Full HD corrigidos: removido weight da row dos cards para não crescerem verticalmente
@@ -48,6 +63,21 @@ Repositório: https://github.com/CaleoSouza/sistema-caixa
 - [ ] `models/produto_model.py` — consultas ao banco (CRUD)
 - [ ] `controllers/produto_controller.py` — lógica de negócio
 - [x] `views/produtos_view.py` — tela de listagem (concluída na Etapa 2a)
+
+### Etapa 2b - Produtos / Formulário (concluída em 09/03/2026)
+- [x] `views/produto_form.py` — formulário em-janela (CTkFrame, não CTkToplevel):
+      - Campos: Nome, Quantidade, Preço Venda, Fornecedor (col esq); Data Validade, Categoria, Descrição (col centro); Código Barras + Gerar EAN-13, Imagem (col dir)
+      - Upload de imagem salva em imagens/produtos/
+      - Modo edição: pré-preenche com dados do produto
+      - Após salvar: callback on_voltar retorna para a listagem
+- [x] `database.py` atualizado: colunas fornecedor e data_validade adicionadas via _migrar_tabelas() (ALTER TABLE)
+- [x] Geração de código EAN-13 com prefixo 789 (padrão brasileiro) e verificação de unicidade
+- [x] `views/produto_detalhe.py` — tela de detalhe em-janela:
+      - Cabeçalho: ← Voltar | nome do produto | ✏️ Editar | 🗑️ Excluir
+      - Card esquerdo: imagem do produto ou placeholder
+      - Card direito: todos os campos em grid + badge de status colorido + campo descrição
+- [x] Tabela de listagem com larguras fixas por coluna (COLUNAS_TABELA) garantindo alinhamento perfeito entre cabeçalho e linhas
+- [x] 20 produtos de teste inseridos via script para validação da interface
 
 ### Etapa 2b - Produtos / Formulário (próxima)
 - [ ] `views/produto_form.py` (modal/janela separada) com:
