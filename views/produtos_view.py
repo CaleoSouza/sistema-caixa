@@ -8,6 +8,7 @@ import tkinter as tk
 from tkinter import messagebox
 from controllers.produto_controller import obter_lista, obter_resumo, remover
 from views.produto_form import ProdutoForm
+from views.produto_detalhe import ProdutoDetalhe
 from utils import formatar_moeda
 
 
@@ -20,6 +21,20 @@ STATUS_INFO = {
     "em_estoque":    ("Em estoque",    "#1a1a1a"),
     "estoque_alto":  ("Estoque Alto",  "#2e7d32"),
 }
+
+# ------------------------------------------------------------------
+# Definição das colunas da tabela: (rótulo, largura_px)
+# Larguras fixas garantem alinhamento perfeito entre cabeçalho e linhas
+# ------------------------------------------------------------------
+COLUNAS_TABELA = [
+    ("ID",         70),
+    ("Nome",      220),
+    ("Quantidade", 100),
+    ("Preço",     120),
+    ("Total",     130),
+    ("Status",    130),
+    ("Ações",      90),
+]
 
 
 class ProdutosView(ctk.CTkFrame):
@@ -96,11 +111,11 @@ class ProdutosView(ctk.CTkFrame):
     # Tabela de produtos
     # ------------------------------------------------------------------
     def _criar_tabela(self):
-        """Container branco com cabeçalho e lista scrollável."""
+        """Container branco com cabeçalho e lista scrollável alinhados por largura fixa."""
         container = ctk.CTkFrame(self, fg_color="white", corner_radius=12)
         container.grid(row=2, column=0, padx=30, pady=(0, 10), sticky="nsew")
         container.grid_columnconfigure(0, weight=1)
-        container.grid_rowconfigure(1, weight=1)
+        container.grid_rowconfigure(2, weight=1)
 
         # Título da tabela
         self.label_total = ctk.CTkLabel(
@@ -111,31 +126,32 @@ class ProdutosView(ctk.CTkFrame):
         )
         self.label_total.grid(row=0, column=0, padx=20, pady=(14, 6), sticky="w")
 
-        # Cabeçalho fixo usando Tkinter Canvas (mais controle visual)
+        # Cabeçalho fixo — uma CTkLabel por coluna com largura exata
         cabecalho = ctk.CTkFrame(container, fg_color="#f0f0f0", corner_radius=0, height=36)
         cabecalho.grid(row=1, column=0, sticky="ew", padx=10)
         cabecalho.grid_propagate(False)
-        cabecalho.grid_columnconfigure((0,1,2,3,4,5,6), weight=1)
 
-        colunas = ["ID", "Nome", "Quantidade", "Preço", "Total", "Status", "Ações"]
-        for i, col in enumerate(colunas):
+        for i, (rotulo, largura) in enumerate(COLUNAS_TABELA):
+            cabecalho.grid_columnconfigure(i, minsize=largura, weight=0)
             ctk.CTkLabel(
                 cabecalho,
-                text=col,
+                text=rotulo,
                 font=ctk.CTkFont(size=12, weight="bold"),
                 text_color="#555555",
-            ).grid(row=0, column=i, padx=8, pady=6, sticky="w")
+                width=largura,
+                anchor="w",
+            ).grid(row=0, column=i, padx=(8, 0), pady=6, sticky="w")
 
-        # Área scrollável para as linhas
+        # Área scrollável para as linhas — mesmas larguras de coluna
         self.scroll_frame = ctk.CTkScrollableFrame(
             container,
             fg_color="white",
             corner_radius=0,
         )
         self.scroll_frame.grid(row=2, column=0, sticky="nsew", padx=10, pady=(0, 10))
-        self.scroll_frame.grid_columnconfigure((0,1,2,3,4,5,6), weight=1)
 
-        container.grid_rowconfigure(2, weight=1)
+        for i, (_, largura) in enumerate(COLUNAS_TABELA):
+            self.scroll_frame.grid_columnconfigure(i, minsize=largura, weight=0)
 
     # ------------------------------------------------------------------
     # Cards de resumo (parte inferior)
@@ -204,32 +220,50 @@ class ProdutosView(ctk.CTkFrame):
         self._atualizar_cards()
 
     def _criar_linha(self, linha: int, produto: dict, bg: str):
-        """Renderiza uma linha de produto na tabela."""
+        """Renderiza uma linha de produto na tabela. Clicar abre o detalhe."""
         status = produto["status_estoque"]
         txt_status, cor_status = STATUS_INFO.get(status, ("Em estoque", "#1a1a1a"))
         total_valor = produto["preco"] * produto["quantidade"]
 
+        # Cada tupla: (texto, cor, negrito, largura_coluna)
         dados_cols = [
-            (f"#{produto['id']:02d}",              "#555555", False),
-            (produto["nome"],                       "#1a1a1a", False),
-            (str(produto["quantidade"]),            "#1a1a1a", False),
-            (formatar_moeda(produto["preco"]),      "#1a1a1a", False),
-            (formatar_moeda(total_valor),           "#1a1a1a", False),
-            (txt_status,                            cor_status, True),
+            (f"#{produto['id']:02d}",         "#555555",  False, COLUNAS_TABELA[0][1]),
+            (produto["nome"],                  "#1f6aa5",  False, COLUNAS_TABELA[1][1]),
+            (str(produto["quantidade"]),       "#1a1a1a",  False, COLUNAS_TABELA[2][1]),
+            (formatar_moeda(produto["preco"]), "#1a1a1a",  False, COLUNAS_TABELA[3][1]),
+            (formatar_moeda(total_valor),      "#1a1a1a",  False, COLUNAS_TABELA[4][1]),
+            (txt_status,                       cor_status, True,  COLUNAS_TABELA[5][1]),
         ]
 
-        for col, (texto, cor, negrito) in enumerate(dados_cols):
-            ctk.CTkLabel(
+        widgets_linha = []
+
+        for col, (texto, cor, negrito, largura) in enumerate(dados_cols):
+            lbl = ctk.CTkLabel(
                 self.scroll_frame,
                 text=texto,
                 font=ctk.CTkFont(size=13, weight="bold" if negrito else "normal"),
                 text_color=cor,
                 anchor="w",
-            ).grid(row=linha, column=col, padx=8, pady=6, sticky="w")
+                width=largura,
+                cursor="hand2",
+            )
+            lbl.grid(row=linha, column=col, padx=(8, 0), pady=6, sticky="w")
+            widgets_linha.append(lbl)
+            lbl.bind("<Button-1>",
+                     lambda e, pid=produto["id"]: self._abrir_detalhe(pid))
 
-        # Botões de ação (editar e excluir)
-        frame_acoes = ctk.CTkFrame(self.scroll_frame, fg_color="transparent")
-        frame_acoes.grid(row=linha, column=6, padx=8, pady=4, sticky="w")
+        # Efeito hover: sublinha o nome ao passar o mouse
+        nome_lbl = widgets_linha[1]
+        fonte_normal = ctk.CTkFont(size=13, underline=False)
+        fonte_hover  = ctk.CTkFont(size=13, underline=True)
+        nome_lbl.bind("<Enter>", lambda e: nome_lbl.configure(font=fonte_hover))
+        nome_lbl.bind("<Leave>", lambda e: nome_lbl.configure(font=fonte_normal))
+
+        # Botões de ação (editar e excluir) — na coluna 6 com largura fixa
+        frame_acoes = ctk.CTkFrame(
+            self.scroll_frame, fg_color="transparent",
+            width=COLUNAS_TABELA[6][1])
+        frame_acoes.grid(row=linha, column=6, padx=(8, 0), pady=4, sticky="w")
 
         ctk.CTkButton(
             frame_acoes,
@@ -267,6 +301,19 @@ class ProdutosView(ctk.CTkFrame):
     # ------------------------------------------------------------------
     # Ações
     # ------------------------------------------------------------------
+    def _abrir_detalhe(self, produto_id: int):
+        """Navega para a tela de detalhe do produto."""
+        from views.produtos_view import ProdutosView
+
+        def voltar():
+            self.controller.mostrar_tela(ProdutosView)
+
+        self.controller.mostrar_tela(
+            ProdutoDetalhe,
+            produto_id=produto_id,
+            on_voltar=voltar,
+        )
+
     def _abrir_formulario(self, produto_id: int = None):
         """Navega para o formulário de cadastro (novo) ou edição dentro da janela principal."""
         from views.produtos_view import ProdutosView
