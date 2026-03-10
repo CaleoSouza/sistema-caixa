@@ -105,39 +105,62 @@ class HomeView(ctk.CTkFrame):
             ("🛒", "Vendas",    str(vendas_hoje),     "Total de vendas hoje!",      "#1a1a1a"),
         ]
 
-        for coluna, (icone, titulo, numero, descricao, cor_desc) in enumerate(cards):
-            self._criar_card(container, icone, titulo, numero, descricao, cor_desc, coluna)
+        # Mapeamento de callbacks de clique por índice dos cards
+        on_clicks = [
+            None,                                    # Crediário (sem ação)
+            self._abrir_produtos_baixo_estoque,      # Produtos — abre com filtro
+            None,                                    # Vendas (sem ação)
+        ]
 
-    def _criar_card(self, parent, icone, titulo, numero, descricao, cor_descricao, coluna):
-        """Cria um card individual na seção Visão Geral."""
+        for coluna, (icone, titulo, numero, descricao, cor_desc) in enumerate(cards):
+            self._criar_card(container, icone, titulo, numero, descricao, cor_desc, coluna, on_clicks[coluna])
+
+    def _criar_card(self, parent, icone, titulo, numero, descricao, cor_descricao, coluna, on_click=None):
+        """Cria um card individual na seção Visão Geral. Se on_click for fornecido, o card é clicável."""
         card = ctk.CTkFrame(parent, fg_color="white", corner_radius=14)
         # sticky="ew" — card não cresce verticalmente, mantém tamanho fixo pelo conteúdo
         card.grid(row=1, column=coluna, padx=15, pady=(0, 20), sticky="ew", ipadx=10, ipady=10)
         card.grid_columnconfigure(0, weight=1)
 
         # Título com ícone
-        ctk.CTkLabel(
+        lbl_titulo = ctk.CTkLabel(
             card,
             text=f"{icone}  {titulo}",
             font=ctk.CTkFont(size=20, weight="bold"),
             text_color="#1f6aa5",
-        ).grid(row=0, column=0, padx=20, pady=(22, 8))
+        )
+        lbl_titulo.grid(row=0, column=0, padx=20, pady=(22, 8))
 
         # Número em destaque
-        ctk.CTkLabel(
+        lbl_numero = ctk.CTkLabel(
             card,
             text=numero,
             font=ctk.CTkFont(size=46, weight="bold"),
             text_color="#1f6aa5",
-        ).grid(row=1, column=0, padx=20, pady=4)
+        )
+        lbl_numero.grid(row=1, column=0, padx=20, pady=4)
 
         # Descrição / alerta
-        ctk.CTkLabel(
+        lbl_desc = ctk.CTkLabel(
             card,
             text=descricao,
             font=ctk.CTkFont(size=13),
             text_color=cor_descricao,
-        ).grid(row=2, column=0, padx=20, pady=(4, 22))
+        )
+        lbl_desc.grid(row=2, column=0, padx=20, pady=(4, 22))
+
+        # Se houver callback, torna o card clicável com efeito hover
+        if on_click:
+            for widget in (card, lbl_titulo, lbl_numero, lbl_desc):
+                widget.configure(cursor="hand2")
+                widget.bind("<Button-1>", lambda e: on_click())
+                widget.bind("<Enter>", lambda e, c=card: c.configure(fg_color="#f0f7ff"))
+                widget.bind("<Leave>", lambda e, c=card: c.configure(fg_color="white"))
+
+    def _abrir_produtos_baixo_estoque(self):
+        """Navega para a lista de produtos com o filtro de estoque baixo ativo."""
+        from views.produtos_view import ProdutosView
+        self.controller.mostrar_tela(ProdutosView, filtro_inicial="estoque_baixo")
 
     # ------------------------------------------------------------------
     # Rodapé

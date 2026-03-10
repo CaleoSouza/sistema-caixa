@@ -38,12 +38,12 @@ COLUNAS_TABELA = [
 
 
 class ProdutosView(ctk.CTkFrame):
-    def __init__(self, parent, controller):
+    def __init__(self, parent, controller, filtro_inicial: str = None):
         super().__init__(parent, fg_color="#e8e8e8", corner_radius=0)
         self.controller = controller
 
         # Rastreia o filtro ativo: None | "estoque_baixo" | "proximos_vencer"
-        self._filtro_ativo = None
+        self._filtro_ativo = filtro_inicial
 
         # Layout: cabeçalho, busca, tabela (expande), cards
         self.grid_columnconfigure(0, weight=1)
@@ -292,7 +292,8 @@ class ProdutosView(ctk.CTkFrame):
             bg = "white" if linha % 2 == 0 else "#f9f9f9"
             self._criar_linha(linha, p, bg)
 
-        # Atualiza os cards de resumo
+        # Atualiza visual dos cards (highlight do filtro ativo) e os valores
+        self._atualizar_visual_cards()
         self._atualizar_cards()
 
     def _criar_linha(self, linha: int, produto: dict, bg: str):
