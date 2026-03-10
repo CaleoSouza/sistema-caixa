@@ -6,7 +6,7 @@ Exibe tabela de produtos com busca, status de estoque e cards de resumo.
 import customtkinter as ctk
 import tkinter as tk
 from tkinter import messagebox
-from controllers.produto_controller import obter_lista, obter_resumo, remover
+from controllers.produto_controller import obter_lista, obter_estoque_baixo, obter_proximos_vencer, obter_resumo, remover
 from views.produto_form import ProdutoForm
 from views.produto_detalhe import ProdutoDetalhe
 from utils import formatar_moeda
@@ -41,6 +41,9 @@ class ProdutosView(ctk.CTkFrame):
     def __init__(self, parent, controller):
         super().__init__(parent, fg_color="#e8e8e8", corner_radius=0)
         self.controller = controller
+
+        # Rastreia o filtro ativo: None | "estoque_baixo" | "proximos_vencer"
+        self._filtro_ativo = None
 
         # Layout: cabeçalho, busca, tabela (expande), cards
         self.grid_columnconfigure(0, weight=1)
@@ -95,8 +98,8 @@ class ProdutosView(ctk.CTkFrame):
             corner_radius=8,
         )
         self.entry_busca.grid(row=0, column=0, padx=(12, 8), pady=12, sticky="ew")
-        # Busca em tempo real ao digitar
-        self.entry_busca.bind("<KeyRelease>", lambda e: self.carregar_produtos())
+        # Busca em tempo real ao digitar (limpa o filtro de card ao digitar)
+        self.entry_busca.bind("<KeyRelease>", self._ao_digitar_busca)
 
         ctk.CTkButton(
             frame,
@@ -106,6 +109,23 @@ class ProdutosView(ctk.CTkFrame):
             height=40,
             command=self.carregar_produtos,
         ).grid(row=0, column=1, padx=(0, 12), pady=12)
+
+        # Badge que aparece quando um filtro de card está ativo
+        self.lbl_filtro_ativo = ctk.CTkLabel(
+            frame,
+            text="",
+            font=ctk.CTkFont(size=12, weight="bold"),
+            text_color="#d97706",
+            fg_color="transparent",
+        )
+        self.lbl_filtro_ativo.grid(row=1, column=0, columnspan=2, padx=12, pady=(0, 6), sticky="w")
+
+    def _ao_digitar_busca(self, event=None):
+        """Ao digitar, limpa o filtro de card e faz a busca normal."""
+        if self._filtro_ativo is not None:
+            self._filtro_ativo = None
+            self._atualizar_visual_cards()
+        self.carregar_produtos()
 
     # ------------------------------------------------------------------
     # Tabela de produtos
@@ -161,47 +181,103 @@ class ProdutosView(ctk.CTkFrame):
         frame.grid(row=3, column=0, padx=30, pady=(0, 20), sticky="ew")
         frame.grid_columnconfigure((0, 1, 2, 3, 4), weight=1)
 
-        # Labels de referência para atualizar valores depois
+        # Guarda referências para atualizar valores e visual later
         self.lbl_cards = {}
+        self.frm_cards = {}
+
+        # Chaves dos cards que são clicáveis (funcionam como filtro)
+        CARDS_CLICAVEIS = {"estoque_baixo", "proximos_vencer"}
 
         definicoes = [
-            ("total",           "Total de Produtos",           "#1f6aa5"),
-            ("itens_estoque",   "Itens em Estoque",            "#1f6aa5"),
-            ("valor_total",     "Valor Total do Estoque",      "#1f6aa5"),
-            ("estoque_baixo",   "Estoque Baixo",               "#1f6aa5"),
-            ("proximos_vencer", "Produtos Próximo a\nVencer (30 dias)", "#1f6aa5"),
+            ("total",           "Total de Produtos",                    "#1f6aa5"),
+            ("itens_estoque",   "Itens em Estoque",                     "#1f6aa5"),
+            ("valor_total",     "Valor Total do Estoque",               "#1f6aa5"),
+            ("estoque_baixo",   "Estoque Baixo",                        "#d97706"),
+            ("proximos_vencer", "Produtos Próximo a\nVencer (30 dias)", "#e53935"),
         ]
 
         for col, (chave, titulo, cor) in enumerate(definicoes):
-            card = ctk.CTkFrame(self.master, fg_color="white", corner_radius=12)
             card = ctk.CTkFrame(frame, fg_color="white", corner_radius=12)
             card.grid(row=0, column=col, padx=6, sticky="ew", ipady=10)
             card.grid_columnconfigure(0, weight=1)
+            self.frm_cards[chave] = card
 
-            ctk.CTkLabel(
+            lbl_titulo = ctk.CTkLabel(
                 card,
                 text=titulo,
                 font=ctk.CTkFont(size=12, weight="bold"),
                 text_color=cor,
                 justify="center",
-            ).grid(row=0, column=0, padx=10, pady=(14, 4))
+            )
+            lbl_titulo.grid(row=0, column=0, padx=10, pady=(14, 4))
 
-            lbl = ctk.CTkLabel(
+            lbl_valor = ctk.CTkLabel(
                 card,
                 text="0",
                 font=ctk.CTkFont(size=26, weight="bold"),
                 text_color="#1a1a1a",
             )
-            lbl.grid(row=1, column=0, padx=10, pady=(0, 14))
-            self.lbl_cards[chave] = lbl
+            lbl_valor.grid(row=1, column=0, padx=10, pady=(0, 14))
+            self.lbl_cards[chave] = lbl_valor
+
+            # Cards filtráveis: cursor hand2 + clique
+            if chave in CARDS_CLICAVEIS:
+                for widget in (card, lbl_titulo, lbl_valor):
+                    widget.configure(cursor="hand2")
+                    widget.bind(
+                        "<Button-1>",
+                        lambda e, k=chave: self._aplicar_filtro(k),
+                    )
+                    widget.bind("<Enter>", lambda e, c=card: c.configure(fg_color="#f5f5f5"))
+                    widget.bind("<Leave>", lambda e, c=card, k=chave: self._restaurar_cor_card(c, k))
+
+    def _aplicar_filtro(self, filtro: str):
+        """
+        Ativa ou desativa o filtro do card.
+        Clicar no card ativo remove o filtro (toggle).
+        """
+        if self._filtro_ativo == filtro:
+            self._filtro_ativo = None  # toggle: desativa
+        else:
+            self._filtro_ativo = filtro
+        self._atualizar_visual_cards()
+        self.carregar_produtos()
+
+    def _restaurar_cor_card(self, card: ctk.CTkFrame, chave: str):
+        """Restaura a cor do card conforme se está ativo ou não."""
+        if self._filtro_ativo == chave:
+            card.configure(fg_color="#fff3cd")   # amarelo suave quando ativo
+        else:
+            card.configure(fg_color="white")
+
+    def _atualizar_visual_cards(self):
+        """Atualiza o highlight visual dos cards e o badge de filtro ativo."""
+        NOMES_FILTRO = {
+            "estoque_baixo":   "🟡  Filtro: Estoque Baixo — clique no card novamente para remover",
+            "proximos_vencer": "🔴  Filtro: Próximos a Vencer — clique no card novamente para remover",
+        }
+        for chave, card in self.frm_cards.items():
+            if self._filtro_ativo == chave:
+                card.configure(fg_color="#fff3cd")
+            else:
+                card.configure(fg_color="white")
+
+        texto_badge = NOMES_FILTRO.get(self._filtro_ativo, "")
+        self.lbl_filtro_ativo.configure(text=texto_badge)
 
     # ------------------------------------------------------------------
     # Carregamento e renderização dos produtos
     # ------------------------------------------------------------------
     def carregar_produtos(self, *args):
-        """Busca os produtos e renderiza as linhas da tabela."""
-        busca = self.entry_busca.get().strip()
-        produtos = obter_lista(busca)
+        """Busca os produtos (com filtro de card ou busca textual) e renderiza as linhas."""
+        # Prioridade: filtro de card > busca textual
+        if self._filtro_ativo == "estoque_baixo":
+            produtos = obter_estoque_baixo()
+        elif self._filtro_ativo == "proximos_vencer":
+            produtos = obter_proximos_vencer()
+        else:
+            busca = self.entry_busca.get().strip()
+            produtos = obter_lista(busca)
 
         # Atualiza o título com o total
         total = len(produtos)

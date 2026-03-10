@@ -10,6 +10,40 @@ from database import conectar
 # Leitura
 # ------------------------------------------------------------------
 
+def listar_estoque_baixo() -> list:
+    """Retorna produtos ativos com quantidade > 0 e abaixo ou igual ao estoque mínimo."""
+    conn = conectar()
+    rows = conn.execute(
+        """SELECT id, nome, categoria, fornecedor, preco, preco_custo,
+                  quantidade, estoque_minimo, codigo_barras,
+                  data_validade, imagem
+           FROM produtos
+           WHERE ativo = 1 AND quantidade > 0 AND quantidade <= estoque_minimo
+           ORDER BY quantidade ASC""",
+    ).fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+
+def listar_proximos_vencer() -> list:
+    """Retorna produtos ativos com data_validade válida e expirando nos próximos 30 dias."""
+    conn = conectar()
+    rows = conn.execute(
+        """SELECT id, nome, categoria, fornecedor, preco, preco_custo,
+                  quantidade, estoque_minimo, codigo_barras,
+                  data_validade, imagem
+           FROM produtos
+           WHERE ativo = 1
+             AND data_validade IS NOT NULL
+             AND data_validade != ''
+             AND date(data_validade) >= date('now')
+             AND date(data_validade) <= date('now', '+30 days')
+           ORDER BY data_validade ASC""",
+    ).fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+
 def listar_produtos(busca: str = "") -> list:
     """
     Retorna lista de produtos ativos.

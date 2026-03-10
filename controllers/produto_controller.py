@@ -11,6 +11,8 @@ from PIL import Image
 
 from models.produto_model import (
     listar_produtos,
+    listar_estoque_baixo,
+    listar_proximos_vencer,
     buscar_por_id,
     buscar_por_codigo_barras,
     codigo_barras_existe,
@@ -38,6 +40,22 @@ PASTA_IMAGENS_PRODUTOS = os.path.join(_BASE_DIR, "imagens", "produtos")
 def obter_lista(busca: str = "") -> list:
     """Retorna produtos com o campo 'status_estoque' calculado."""
     produtos = listar_produtos(busca)
+    for p in produtos:
+        p["status_estoque"] = _calcular_status(p["quantidade"], p["estoque_minimo"])
+    return produtos
+
+
+def obter_estoque_baixo() -> list:
+    """Retorna produtos com estoque baixo (quantidade ≤ estoque_minimo) e status calculado."""
+    produtos = listar_estoque_baixo()
+    for p in produtos:
+        p["status_estoque"] = _calcular_status(p["quantidade"], p["estoque_minimo"])
+    return produtos
+
+
+def obter_proximos_vencer() -> list:
+    """Retorna produtos com data_validade nos próximos 30 dias e status calculado."""
+    produtos = listar_proximos_vencer()
     for p in produtos:
         p["status_estoque"] = _calcular_status(p["quantidade"], p["estoque_minimo"])
     return produtos

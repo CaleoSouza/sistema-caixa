@@ -82,12 +82,18 @@ class App(ctk.CTk):
         self.sidebar.grid_rowconfigure(7, weight=1)  # empurra botões para cima
 
         # --- Título ---
-        ctk.CTkLabel(
+        # "Menu" clicável → volta para o Home
+        lbl_menu = ctk.CTkLabel(
             self.sidebar,
             text="Menu",
             font=ctk.CTkFont(size=26, weight="bold"),
             text_color="#1a1a1a",
-        ).grid(row=0, column=0, padx=25, pady=(35, 0), sticky="w")
+            cursor="hand2",
+        )
+        lbl_menu.grid(row=0, column=0, padx=25, pady=(35, 0), sticky="w")
+        lbl_menu.bind("<Button-1>", lambda e: self.mostrar_tela(HomeView))
+        lbl_menu.bind("<Enter>", lambda e: lbl_menu.configure(text_color="#1f6aa5"))
+        lbl_menu.bind("<Leave>", lambda e: lbl_menu.configure(text_color="#1a1a1a"))
 
         ctk.CTkLabel(
             self.sidebar,
