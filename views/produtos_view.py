@@ -28,7 +28,7 @@ STATUS_INFO = {
 # ------------------------------------------------------------------
 COLUNAS_TABELA = [
     ("ID",         70),
-    ("Nome",      180),
+    ("Nome",      150),
     ("Quantidade", 100),
     ("Preço",     120),
     ("Total",     120),
@@ -37,7 +37,7 @@ COLUNAS_TABELA = [
 ]
 
 # Máximo de caracteres antes de truncar com "…" (por coluna)
-_MAX_CHARS = [None, 22, None, None, None, None, None]
+_MAX_CHARS = [None, 18, None, None, None, None, None]
 
 
 def _truncar(texto: str, max_chars: int | None) -> str:
