@@ -107,7 +107,7 @@ class HomeView(ctk.CTkFrame):
 
         # Mapeamento de callbacks de clique por índice dos cards
         on_clicks = [
-            None,                                    # Crediário (sem ação)
+            self._abrir_clientes_em_atraso,          # Crediário — abre clientes em atraso
             self._abrir_produtos_baixo_estoque,      # Produtos — abre com filtro
             None,                                    # Vendas (sem ação)
         ]
@@ -156,6 +156,11 @@ class HomeView(ctk.CTkFrame):
                 widget.bind("<Button-1>", lambda e: on_click())
                 widget.bind("<Enter>", lambda e, c=card: c.configure(fg_color="#f0f7ff"))
                 widget.bind("<Leave>", lambda e, c=card: c.configure(fg_color="white"))
+
+    def _abrir_clientes_em_atraso(self):
+        """Navega para a lista de clientes com o filtro de crediário em atraso ativo."""
+        from views.clientes_view import ClientesView
+        self.controller.mostrar_tela(ClientesView, filtro_inicial="em_atraso")
 
     def _abrir_produtos_baixo_estoque(self):
         """Navega para a lista de produtos com o filtro de estoque baixo ativo."""

@@ -145,20 +145,21 @@ def _migrar_tabelas(conn):
     Adiciona colunas criadas após a versão inicial do banco.
     Usa ALTER TABLE para não perder dados já cadastrados.
     """
-    # Lê as colunas atuais da tabela produtos
-    colunas = [
+    # Migrações da tabela produtos
+    colunas_produtos = [
         row[1] for row in conn.execute("PRAGMA table_info(produtos)")
     ]
-
-    # Mapeamento: nome_da_coluna → definição SQL
-    novas_colunas = [
-        ("fornecedor",    "TEXT"),
-        ("data_validade", "TEXT"),
-    ]
-
-    for nome, tipo in novas_colunas:
-        if nome not in colunas:
+    for nome, tipo in [("fornecedor", "TEXT"), ("data_validade", "TEXT")]:
+        if nome not in colunas_produtos:
             conn.execute(f"ALTER TABLE produtos ADD COLUMN {nome} {tipo}")
+
+    # Migrações da tabela clientes
+    colunas_clientes = [
+        row[1] for row in conn.execute("PRAGMA table_info(clientes)")
+    ]
+    for nome, tipo in [("cidade", "TEXT")]:
+        if nome not in colunas_clientes:
+            conn.execute(f"ALTER TABLE clientes ADD COLUMN {nome} {tipo}")
 
 
 # Permite inicializar o banco executando este arquivo diretamente

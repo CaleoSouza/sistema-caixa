@@ -8,6 +8,7 @@ import customtkinter as ctk
 from database import criar_tabelas
 from views.home_view import HomeView
 from views.produtos_view import ProdutosView
+from views.clientes_view import ClientesView
 
 
 # ------------------------------------------------------------------
@@ -212,11 +213,11 @@ class App(ctk.CTk):
         # --- Botões de navegação ---
         # Formato: (texto, ícone unicode, classe da view)
         self.nav_botoes = [
-            ("Carrinho",      "🛒", None),          # CarrinhoView (Etapa 4)
-            ("Produtos",      "📦", ProdutosView),  # ✅ Etapa 2
-            ("Clientes",      "👤", None),          # ClientesView (Etapa 3)
-            ("Relatórios",    "📊", None),          # RelatoriosView (Etapa 5)
-            ("Configurações", "⚙️", None),          # ConfiguracoesView (Etapa 6)
+            ("Carrinho",      "🛒", None),           # CarrinhoView (Etapa 4)
+            ("Produtos",      "📦", ProdutosView),   # ✅ Etapa 2
+            ("Clientes",      "👤", ClientesView),   # ✅ Etapa 3
+            ("Relatórios",    "📊", None),           # RelatoriosView (Etapa 5)
+            ("Configurações", "⚙️", None),           # ConfiguracoesView (Etapa 6)
         ]
 
         self.btns_nav = {}
