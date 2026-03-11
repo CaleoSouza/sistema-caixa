@@ -27,9 +27,9 @@ STATUS_INFO = {
 # Larguras fixas garantem alinhamento perfeito entre cabeçalho e linhas
 # ------------------------------------------------------------------
 COLUNAS_TABELA = [
-    ("ID",         70),
+    ("ID",         55),
     ("Nome",      150),
-    ("Quantidade", 100),
+    ("Quantidade",  85),
     ("Preço",     120),
     ("Total",     120),
     ("Status",    120),
