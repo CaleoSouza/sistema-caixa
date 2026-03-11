@@ -99,8 +99,8 @@ def inserir_cliente(dados: dict) -> int:
     cursor = conn.execute(
         """INSERT INTO clientes
                (nome, cpf, telefone, email, cidade, endereco, foto,
-                tem_crediario, limite_credito, debito_atual)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                tem_crediario, limite_credito, debito_atual, data_nascimento)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
         (
             dados.get("nome"),
             dados.get("cpf") or None,
@@ -112,6 +112,7 @@ def inserir_cliente(dados: dict) -> int:
             int(dados.get("tem_crediario", 0)),
             float(dados.get("limite_credito", 0.0)),
             float(dados.get("debito_atual", 0.0)),
+            dados.get("data_nascimento") or None,
         ),
     )
     conn.commit()
@@ -126,7 +127,7 @@ def atualizar_cliente(cliente_id: int, dados: dict) -> bool:
     conn.execute(
         """UPDATE clientes
            SET nome=?, cpf=?, telefone=?, email=?, cidade=?, endereco=?, foto=?,
-               tem_crediario=?, limite_credito=?, debito_atual=?,
+               tem_crediario=?, limite_credito=?, debito_atual=?, data_nascimento=?,
                atualizado_em=datetime('now','localtime')
            WHERE id=? AND ativo=1""",
         (
@@ -140,6 +141,7 @@ def atualizar_cliente(cliente_id: int, dados: dict) -> bool:
             int(dados.get("tem_crediario", 0)),
             float(dados.get("limite_credito", 0.0)),
             float(dados.get("debito_atual", 0.0)),
+            dados.get("data_nascimento") or None,
             cliente_id,
         ),
     )

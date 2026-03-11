@@ -157,7 +157,7 @@ def _migrar_tabelas(conn):
     colunas_clientes = [
         row[1] for row in conn.execute("PRAGMA table_info(clientes)")
     ]
-    for nome, tipo in [("cidade", "TEXT")]:
+    for nome, tipo in [("cidade", "TEXT"), ("data_nascimento", "TEXT")]:
         if nome not in colunas_clientes:
             conn.execute(f"ALTER TABLE clientes ADD COLUMN {nome} {tipo}")
 

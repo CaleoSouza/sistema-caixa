@@ -116,6 +116,15 @@ class ClienteForm(ctk.CTkFrame):
                                         placeholder_text="email@exemplo.com")
         self.entry_email.grid(row=7, column=0, sticky="ew")
 
+        # Data de Nascimento
+        ctk.CTkLabel(col, text="Data de Nascimento",
+                     font=ctk.CTkFont(size=13), text_color="#333333").grid(
+            row=8, column=0, sticky="w", pady=(14, 4))
+        self.entry_data_nasc = ctk.CTkEntry(col, height=36, fg_color="white",
+                                            border_color="#cccccc", font=ctk.CTkFont(size=13),
+                                            placeholder_text="DD/MM/AAAA")
+        self.entry_data_nasc.grid(row=9, column=0, sticky="ew")
+
     # ------------------------------------------------------------------
     # Coluna central: Cidade, Endereço
     # ------------------------------------------------------------------
@@ -264,11 +273,12 @@ class ClienteForm(ctk.CTkFrame):
             self._voltar()
             return
 
-        self._set_entry(self.entry_nome,     cliente.get("nome", ""))
-        self._set_entry(self.entry_cpf,      cliente.get("cpf") or "")
-        self._set_entry(self.entry_telefone, cliente.get("telefone") or "")
-        self._set_entry(self.entry_email,    cliente.get("email") or "")
-        self._set_entry(self.entry_cidade,   cliente.get("cidade") or "")
+        self._set_entry(self.entry_nome,      cliente.get("nome", ""))
+        self._set_entry(self.entry_cpf,       cliente.get("cpf") or "")
+        self._set_entry(self.entry_telefone,  cliente.get("telefone") or "")
+        self._set_entry(self.entry_email,     cliente.get("email") or "")
+        self._set_entry(self.entry_cidade,    cliente.get("cidade") or "")
+        self._set_entry(self.entry_data_nasc, cliente.get("data_nascimento") or "")
 
         endereco = cliente.get("endereco") or ""
         if endereco:
@@ -353,17 +363,20 @@ class ClienteForm(ctk.CTkFrame):
                 excluir_foto_cliente(self._foto_atual)
                 foto_nome = None
 
+        data_nasc = self.entry_data_nasc.get().strip()
+
         dados = {
-            "nome":          nome,
-            "cpf":           cpf or None,
-            "telefone":      telefone or None,
-            "email":         email or None,
-            "cidade":        cidade or None,
-            "endereco":      endereco or None,
-            "foto":          foto_nome,
-            "tem_crediario": int(tem_cred),
-            "limite_credito": limite,
-            "debito_atual":  debito,
+            "nome":             nome,
+            "cpf":              cpf or None,
+            "telefone":         telefone or None,
+            "email":            email or None,
+            "cidade":           cidade or None,
+            "endereco":         endereco or None,
+            "foto":             foto_nome,
+            "tem_crediario":    int(tem_cred),
+            "limite_credito":   limite,
+            "debito_atual":     debito,
+            "data_nascimento":  data_nasc or None,
         }
 
         ok, msg = salvar(dados, self.cliente_id)

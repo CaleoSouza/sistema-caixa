@@ -150,10 +150,11 @@ class ClienteDetalhe(ctk.CTkFrame):
 
         # Campos principais
         campos = [
-            ("CPF",       formatar_cpf(c.get("cpf") or "") or "—"),
-            ("Telefone",  formatar_telefone(c.get("telefone") or "") or "—"),
-            ("E-mail",    c.get("email") or "—"),
-            ("Cidade",    c.get("cidade") or "—"),
+            ("CPF",               formatar_cpf(c.get("cpf") or "") or "—"),
+            ("Telefone",          formatar_telefone(c.get("telefone") or "") or "—"),
+            ("E-mail",            c.get("email") or "—"),
+            ("Nascimento",        c.get("data_nascimento") or "—"),
+            ("Cidade",            c.get("cidade") or "—"),
         ]
 
         linha = 0
