@@ -161,6 +161,8 @@ class ProdutosView(ctk.CTkFrame):
                 width=largura,
                 anchor="w",
             ).grid(row=0, column=i, padx=(8, 0), pady=6, sticky="w")
+        # Coluna filler: expande para absorver o espaço da scrollbar e do container
+        cabecalho.grid_columnconfigure(len(COLUNAS_TABELA), weight=1)
 
         # Área scrollável para as linhas — mesmas larguras de coluna
         self.scroll_frame = ctk.CTkScrollableFrame(
@@ -172,6 +174,8 @@ class ProdutosView(ctk.CTkFrame):
 
         for i, (_, largura) in enumerate(COLUNAS_TABELA):
             self.scroll_frame.grid_columnconfigure(i, minsize=largura, weight=0)
+        # Coluna filler: absorve scrollbar e espaço extra, evita corte da última coluna
+        self.scroll_frame.grid_columnconfigure(len(COLUNAS_TABELA), weight=1)
 
     # ------------------------------------------------------------------
     # Cards de resumo (parte inferior)
@@ -304,12 +308,12 @@ class ProdutosView(ctk.CTkFrame):
 
         # Cada tupla: (texto, cor, negrito, largura_coluna)
         dados_cols = [
-            (f"#{produto['id']:02d}",         "#555555",  False, COLUNAS_TABELA[0][1]),
-            (produto["nome"],                  "#1f6aa5",  False, COLUNAS_TABELA[1][1]),
-            (str(produto["quantidade"]),       "#1a1a1a",  False, COLUNAS_TABELA[2][1]),
-            (formatar_moeda(produto["preco"]), "#1a1a1a",  False, COLUNAS_TABELA[3][1]),
-            (formatar_moeda(total_valor),      "#1a1a1a",  False, COLUNAS_TABELA[4][1]),
-            (txt_status,                       cor_status, True,  COLUNAS_TABELA[5][1]),
+            (f"#{produto['id']:02d}",                     "#555555",  False, COLUNAS_TABELA[0][1]),
+            (_truncar(produto["nome"], _MAX_CHARS[1]),    "#1f6aa5",  False, COLUNAS_TABELA[1][1]),
+            (str(produto["quantidade"]),                  "#1a1a1a",  False, COLUNAS_TABELA[2][1]),
+            (formatar_moeda(produto["preco"]),            "#1a1a1a",  False, COLUNAS_TABELA[3][1]),
+            (formatar_moeda(total_valor),                 "#1a1a1a",  False, COLUNAS_TABELA[4][1]),
+            (txt_status,                                  cor_status, True,  COLUNAS_TABELA[5][1]),
         ]
 
         widgets_linha = []

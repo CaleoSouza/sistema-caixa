@@ -24,15 +24,26 @@ STATUS_INFO = {
 
 # ------------------------------------------------------------------
 # Definição das colunas da tabela: (rótulo, largura_px)
+# Limite de caracteres por coluna para truncamento com "..."
 # ------------------------------------------------------------------
 COLUNAS_TABELA = [
     ("ID",       70),
     ("Nome",    220),
     ("Telefone", 140),
-    ("Cidade",   160),
-    ("Status",   130),
+    ("Cidade",   150),
+    ("Status",   120),
     ("Ações",     90),
 ]
+
+# Máximo de caracteres antes de truncar com "…" (por coluna)
+_MAX_CHARS = [None, 26, 18, 18, None, None]
+
+
+def _truncar(texto: str, max_chars: int | None) -> str:
+    """Trunca texto longo com reticências para manter alinhamento da tabela."""
+    if max_chars and len(texto) > max_chars:
+        return texto[:max_chars - 1] + "…"
+    return texto
 
 
 class ClientesView(ctk.CTkFrame):
@@ -159,6 +170,8 @@ class ClientesView(ctk.CTkFrame):
                 width=largura,
                 anchor="w",
             ).grid(row=0, column=i, padx=(8, 0), pady=6, sticky="w")
+        # Coluna filler: expande para absorver o espaço da scrollbar e do container
+        cabecalho.grid_columnconfigure(len(COLUNAS_TABELA), weight=1)
 
         # Área scrollável para as linhas
         self.scroll_frame = ctk.CTkScrollableFrame(
@@ -168,6 +181,8 @@ class ClientesView(ctk.CTkFrame):
 
         for i, (_, largura) in enumerate(COLUNAS_TABELA):
             self.scroll_frame.grid_columnconfigure(i, minsize=largura, weight=0)
+        # Coluna filler: absorve scrollbar e espaço extra, evita corte da última coluna
+        self.scroll_frame.grid_columnconfigure(len(COLUNAS_TABELA), weight=1)
 
     # ------------------------------------------------------------------
     # Cards de resumo (parte inferior)
@@ -278,11 +293,11 @@ class ClientesView(ctk.CTkFrame):
         cpf_fmt      = formatar_cpf(cliente.get("cpf") or "")
 
         dados_cols = [
-            (f"#{cliente['id']:02d}",            "#555555", False, COLUNAS_TABELA[0][1]),
-            (cliente["nome"],                     "#1f6aa5", False, COLUNAS_TABELA[1][1]),
-            (telefone_fmt or "—",                 "#1a1a1a", False, COLUNAS_TABELA[2][1]),
-            (cliente.get("cidade") or "—",        "#1a1a1a", False, COLUNAS_TABELA[3][1]),
-            (txt_status,                          cor_status, True, COLUNAS_TABELA[4][1]),
+            (f"#{cliente['id']:02d}",                              "#555555",  False, COLUNAS_TABELA[0][1]),
+            (_truncar(cliente["nome"], _MAX_CHARS[1]),             "#1f6aa5",  False, COLUNAS_TABELA[1][1]),
+            (_truncar(telefone_fmt or "—", _MAX_CHARS[2]),        "#1a1a1a",  False, COLUNAS_TABELA[2][1]),
+            (_truncar(cliente.get("cidade") or "—", _MAX_CHARS[3]),"#1a1a1a", False, COLUNAS_TABELA[3][1]),
+            (txt_status,                                           cor_status, True,  COLUNAS_TABELA[4][1]),
         ]
 
         widgets_linha = []
