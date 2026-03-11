@@ -91,12 +91,41 @@ Repositório: https://github.com/CaleoSouza/sistema-caixa
       - Geração de código de barras por produto
       - Consulta por código de barras na tela de Carrinho
 
-### Etapa 3 - Clientes
-- [ ] `models/cliente_model.py`
-- [ ] `controllers/cliente_controller.py`
-- [ ] `views/clientes_view.py` — CRUD + upload de foto
+### Etapa 3 - Clientes (concluída em 10/03/2026)
+- [x] `models/cliente_model.py` — CRUD completo:
+      - listar_clientes(busca), listar_em_atraso(), buscar_por_id(), resumo_clientes()
+      - inserir_cliente(), atualizar_cliente(), excluir_cliente() (lógica: ativo=0)
+      - Campos: nome, cpf, telefone, email, cidade, endereco, foto, tem_crediario,
+                limite_credito, debito_atual, data_nascimento
+- [x] `controllers/cliente_controller.py` — lógica de negócio:
+      - _calcular_status(): sem_debitos | em_dia | em_atraso
+      - salvar_foto_cliente(), excluir_foto_cliente()
+      - PASTA_FOTOS_CLIENTES = imagens/clientes/
+- [x] `views/clientes_view.py` — listagem com:
+      - Tabela: ID, Nome, Telefone, Cidade, Status, Ações
+      - Busca em tempo real (nome, CPF, telefone, cidade)
+      - Card "Clientes em Atraso" clicável como filtro toggle (fundo #fff0f0)
+      - Badge de filtro ativo na barra de busca
+      - 3 cards: Total de Clientes, Clientes em Dia, Clientes em Atraso
+      - Coluna filler (weight=1) no cabeçalho e scroll_frame para evitar corte da coluna Ações
+      - _truncar() com _MAX_CHARS por coluna para textos longos
+- [x] `views/cliente_form.py` — formulário 3 colunas:
+      - Esquerda: Nome*, CPF, Telefone, Email, Data de Nascimento (DD/MM/AAAA)
+      - Centro: Cidade, Endereço (CTkTextbox)
+      - Direita: Foto upload (preview), CTkSwitch "Possui crediário",
+                 Limite de Crédito, Débito Atual (desabilitados se sem crediário)
+- [x] `views/cliente_detalhe.py` — detalhe compacto:
+      - Cabeçalho: ← Voltar | nome | ✏️ Editar | 🗑️ Excluir
+      - Card esquerdo: foto ou placeholder 👤
+      - Card direito: CPF, Telefone, E-mail, Nascimento, Cidade, Status badge,
+                      Crediário condicional (Limite + Débito), Endereço
+- [x] `database.py` — migração automática: cidade TEXT e data_nascimento TEXT na tabela clientes
+- [x] `main.py` — botão Clientes conectado a ClientesView
+- [x] `views/home_view.py` — card Crediário conectado a ClientesView com filtro_inicial="em_atraso"
+- [x] Fix tabelas: coluna filler + _truncar() aplicados também em produtos_view.py
+- [x] 10 clientes de teste inseridos para validação da interface
 
-### Etapa 4 - Carrinho
+### Etapa 3 - Clientes
 - [ ] `models/venda_model.py`
 - [ ] `controllers/venda_controller.py`
 - [ ] `views/carrinho_view.py` — registrar venda, desconto, baixa de estoque automática

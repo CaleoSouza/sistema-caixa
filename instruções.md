@@ -33,22 +33,24 @@ Sistema Caixa/
 │
 ├── views/                       # Telas (uma por categoria)
 │   ├── home_view.py             # Tela inicial (dashboard com cards clicáveis)
-│   ├── produtos_view.py         # Listagem de produtos com filtros e busca por código de barras
+│   ├── produtos_view.py         # Listagem de produtos com filtros e busca
 │   ├── produto_form.py          # Formulário de cadastro/edição de produto (in-window)
 │   ├── produto_detalhe.py       # Detalhe do produto com editar/excluir (in-window)
-│   ├── clientes_view.py         # (Etapa 3 - pendente)
+│   ├── clientes_view.py         # ✅ Listagem de clientes com filtros e busca (Etapa 3)
+│   ├── cliente_form.py          # ✅ Formulário de cadastro/edição de cliente (Etapa 3)
+│   ├── cliente_detalhe.py       # ✅ Detalhe do cliente com editar/excluir (Etapa 3)
 │   ├── carrinho_view.py         # (Etapa 4 - pendente)
 │   ├── relatorios_view.py       # (Etapa 5 - pendente)
 │   └── configuracoes_view.py    # (Etapa 6 - pendente)
 │
 ├── controllers/                 # Lógica de negócio
 │   ├── produto_controller.py    # CRUD produtos, EAN-13, status estoque, imagens
-│   ├── cliente_controller.py    # (Etapa 3 - pendente)
+│   ├── cliente_controller.py    # ✅ CRUD clientes, status crediário, imagens (Etapa 3)
 │   └── venda_controller.py      # (Etapa 4 - pendente)
 │
 ├── models/                      # Consultas ao banco de dados
 │   ├── produto_model.py         # SQL produtos: listar, filtros, resumo, estoque baixo, próx. vencer
-│   ├── cliente_model.py         # (Etapa 3 - pendente)
+│   ├── cliente_model.py         # ✅ SQL clientes: listar, filtros, resumo, em atraso (Etapa 3)
 │   └── venda_model.py           # (Etapa 4 - pendente)
 │
 ├── imagens/                     # Imagens do sistema
