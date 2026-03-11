@@ -28,13 +28,23 @@ STATUS_INFO = {
 # ------------------------------------------------------------------
 COLUNAS_TABELA = [
     ("ID",         70),
-    ("Nome",      220),
+    ("Nome",      180),
     ("Quantidade", 100),
     ("Preço",     120),
-    ("Total",     130),
-    ("Status",    130),
+    ("Total",     120),
+    ("Status",    120),
     ("Ações",      90),
 ]
+
+# Máximo de caracteres antes de truncar com "…" (por coluna)
+_MAX_CHARS = [None, 22, None, None, None, None, None]
+
+
+def _truncar(texto: str, max_chars: int | None) -> str:
+    """Trunca texto longo com reticências para manter alinhamento da tabela."""
+    if max_chars and len(texto) > max_chars:
+        return texto[:max_chars - 1] + "…"
+    return texto
 
 
 class ProdutosView(ctk.CTkFrame):
