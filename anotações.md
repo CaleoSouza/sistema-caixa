@@ -125,6 +125,31 @@ Repositório: https://github.com/CaleoSouza/sistema-caixa
 - [x] Fix tabelas: coluna filler + _truncar() aplicados também em produtos_view.py
 - [x] 10 clientes de teste inseridos para validação da interface
 
+### Redesign cliente_detalhe.py — Crediário e Pagamentos (11/03/2026)
+- [x] `database.py` — 2 novas tabelas:
+      - `crediario_itens`: id, cliente_id, produto_nome, data, quantidade, preco_unitario, total, criado_em
+      - `historico_pagamentos`: id, cliente_id, data, tipo, valor, criado_em (ambas com FK para clientes)
+- [x] `models/crediario_model.py` — CRUD completo:
+      - listar_itens(), inserir_item(), atualizar_item(), excluir_item()
+      - listar_pagamentos(), inserir_pagamento(), atualizar_pagamento(), excluir_pagamento()
+      - calcular_saldo() → max(0, Σitens - Σpagamentos)
+      - _sincronizar_debito() → atualiza clientes.debito_atual automaticamente
+- [x] `views/crediario_item_form.py` — CTkToplevel modal para adicionar/editar item:
+      - Campos: Produto/Descrição, Data (padrão hoje), Qtd. (padrão 1), Preço Unit.
+      - Total calculado automaticamente (KeyRelease: qtd × preço)
+- [x] `views/pagamento_form.py` — CTkToplevel modal para registrar/editar pagamento:
+      - Campos: Data (padrão hoje), Tipo (Dinheiro/Cartão/Pix/Transferência/Cheque), Valor
+- [x] `views/cliente_detalhe.py` — reescrita completa com novo layout:
+      - Painel esquerdo: foto 110×130 + CPF/Tel/Email/Nascimento/Cidade/Status ao lado +
+        seção Crediário (Limite + Débito Atual atualizado dinamicamente) + Endereço
+      - Painel direito: 2 cards com CTkScrollableFrame
+        • Card "Crediário": tabela (ID, Produto, Data, Qtd., Preço, Total, Ações ✏️🗑️🖨️)
+          botão "+ Item" + "🖨️ Imprimir Hist. Completo" (stub por enquanto)
+        • Card "Histórico de Pagamento": tabela (Data, Tipo, Valor, Ações ✏️🗑️🖨️)
+          + Saldo Devedor (verde=zerado / vermelho=devendo)
+      - _atualizar_tudo() recarrega tabelas, saldo e débito ao salvar/excluir
+      - Botões 🖨️ exibem "Em breve" — impressão real será Etapa 3 Fase 2
+
 ### Etapa 3 - Clientes
 - [ ] `models/venda_model.py`
 - [ ] `controllers/venda_controller.py`
@@ -146,6 +171,15 @@ Repositório: https://github.com/CaleoSouza/sistema-caixa
 --------------------
 
 ## 💡 Ideias e observações
+
+- **REGRA FUTURA — Integração Carrinho → Crediário:** ao finalizar uma venda no carrinho
+  com forma de pagamento "A prazo" (crediário), cada item da venda deve ser automaticamente
+  inserido na tabela `crediario_itens` do cliente selecionado, chamando `inserir_item()` do
+  `crediario_model.py`. Isso sincroniza o débito do cliente automaticamente via `_sincronizar_debito()`.
+  - O campo `produto_nome` receberá o nome do produto vendido
+  - O campo `data` receberá a data da venda
+  - O campo `quantidade`, `preco_unitario` e `total` vêm direto do item do carrinho
+  - O cliente deve ter `tem_crediario = 1` para que a venda a prazo seja permitida
 
 - Usar `utils.py` em todas as views para garantir padrão brasileiro
 - Código de barras: biblioteca `python-barcode` para geração (a avaliar)

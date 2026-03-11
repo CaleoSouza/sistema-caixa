@@ -38,7 +38,9 @@ Sistema Caixa/
 │   ├── produto_detalhe.py       # Detalhe do produto com editar/excluir (in-window)
 │   ├── clientes_view.py         # ✅ Listagem de clientes com filtros e busca (Etapa 3)
 │   ├── cliente_form.py          # ✅ Formulário de cadastro/edição de cliente (Etapa 3)
-│   ├── cliente_detalhe.py       # ✅ Detalhe do cliente com editar/excluir (Etapa 3)
+│   ├── cliente_detalhe.py       # ✅ Detalhe do cliente — redesign com tabelas crediário e pagamentos (11/03/2026)
+│   ├── crediario_item_form.py   # ✅ Popup CTkToplevel para adicionar/editar item do crediário
+│   ├── pagamento_form.py        # ✅ Popup CTkToplevel para registrar/editar pagamento
 │   ├── carrinho_view.py         # (Etapa 4 - pendente)
 │   ├── relatorios_view.py       # (Etapa 5 - pendente)
 │   └── configuracoes_view.py    # (Etapa 6 - pendente)
@@ -51,6 +53,7 @@ Sistema Caixa/
 ├── models/                      # Consultas ao banco de dados
 │   ├── produto_model.py         # SQL produtos: listar, filtros, resumo, estoque baixo, próx. vencer
 │   ├── cliente_model.py         # ✅ SQL clientes: listar, filtros, resumo, em atraso (Etapa 3)
+│   ├── crediario_model.py       # ✅ CRUD crediario_itens + historico_pagamentos + calcular_saldo
 │   └── venda_model.py           # (Etapa 4 - pendente)
 │
 ├── imagens/                     # Imagens do sistema
@@ -90,6 +93,8 @@ Etapa 4 - Carrinho
   - Registrar vendas
   - Aplicar descontos
   - Baixar estoque automaticamente ao vender
+  - Forma de pagamento "A prazo" → inserir itens automaticamente no crediário do cliente
+    (chamar crediario_model.inserir_item() para cada item da venda; cliente deve ter tem_crediario=1)
   
 Etapa 5 - Relatórios
   - Relatórios de vendas, produtos e clientes
