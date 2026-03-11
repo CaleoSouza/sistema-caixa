@@ -30,7 +30,7 @@ COLUNAS_TABELA = [
     ("ID",         55),
     ("Nome",      150),
     ("Quantidade",  85),
-    ("Preço",     120),
+    ("Preço",     100),
     ("Total",     120),
     ("Status",    120),
     ("Ações",      90),
