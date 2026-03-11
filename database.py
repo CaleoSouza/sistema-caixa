@@ -117,6 +117,40 @@ def criar_tabelas():
     """)
 
     # ------------------------------------------------------------------
+    # Tabela: crediario_itens
+    # Produtos/serviços anotados no crediário de cada cliente
+    # ------------------------------------------------------------------
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS crediario_itens (
+            id              INTEGER PRIMARY KEY AUTOINCREMENT,
+            cliente_id      INTEGER NOT NULL,
+            produto_nome    TEXT    NOT NULL,
+            data            TEXT    NOT NULL,
+            quantidade      INTEGER NOT NULL DEFAULT 1,
+            preco_unitario  REAL    NOT NULL DEFAULT 0.0,
+            total           REAL    NOT NULL DEFAULT 0.0,
+            criado_em       TEXT             DEFAULT (datetime('now','localtime')),
+            FOREIGN KEY (cliente_id) REFERENCES clientes(id)
+        )
+    """)
+
+    # ------------------------------------------------------------------
+    # Tabela: historico_pagamentos
+    # Pagamentos realizados por clientes no crediário
+    # ------------------------------------------------------------------
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS historico_pagamentos (
+            id          INTEGER PRIMARY KEY AUTOINCREMENT,
+            cliente_id  INTEGER NOT NULL,
+            data        TEXT    NOT NULL,
+            tipo        TEXT    NOT NULL,
+            valor       REAL    NOT NULL DEFAULT 0.0,
+            criado_em   TEXT             DEFAULT (datetime('now','localtime')),
+            FOREIGN KEY (cliente_id) REFERENCES clientes(id)
+        )
+    """)
+
+    # ------------------------------------------------------------------
     # Migração: adiciona colunas novas em bancos já existentes
     # Preserva todos os dados cadastrados anteriormente
     # ------------------------------------------------------------------
