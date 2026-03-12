@@ -155,6 +155,42 @@ Repositório: https://github.com/CaleoSouza/sistema-caixa
 - [ ] `controllers/venda_controller.py`
 - [ ] `views/carrinho_view.py` — registrar venda, desconto, baixa de estoque automática
 
+### Etapa 4 - Carrinho (concluída em 11/03/2026)
+
+#### Fase 1 — Painel esquerdo (Produtos + Carrinho)
+- [x] `database.py` — tabela `vendas` recebeu `taxa_cartao REAL` e `parcelas INTEGER` via _migrar_tabelas()
+- [x] `models/venda_model.py` — CRUD completo:
+      - registrar_venda(dados, itens) com transação atômica
+      - listar_vendas(limite) com LEFT JOIN clientes
+      - listar_itens_venda(venda_id)
+      - total_vendas_hoje(), quantidade_vendas_hoje()
+- [x] `controllers/venda_controller.py` — lógica completa:
+      - finalizar_venda(): valida estoque → registra → baixa estoque → crediário (se a_prazo)
+      - Fix: separação das conexões SQLite (estoque commit+close antes de abrir crediário)
+      - obter_vendas(), obter_itens_venda() para Relatórios
+- [x] `views/carrinho_view.py` — Fase 1:
+      - COLS_DISP e COLS_CARR com larguras ajustadas para HD e Full HD (uniform="painel")
+      - Card "Produtos Disponíveis": busca em tempo real + leitor de código de barras (Enter → buscar_por_codigo_barras → adiciona direto ao carrinho)
+      - Filtros: Todos (azul) / Promoção (laranja) / Pouco Estoque (vermelho) com contagens dinâmicas
+      - Nomes truncados com "..." a partir de 18 caracteres para não cortar botões
+      - Botão "+ Adic." adiciona ao carrinho; incrementa quantidade se já existir
+      - Card "Itens no Carrinho": botões ✏️ (azul claro) e 🗑️ (vermelho claro) com cor visível
+      - _EditarItemForm (CTkToplevel): edita quantidade e preço unitário
+
+#### Fase 2 — Painel direito (Resumo do Pedido)
+- [x] Painel direito com CTkScrollableFrame rolável + botões fixos na parte inferior
+- [x] Totais: Subtotal + campo Desconto % + botão Aplicar + Total em destaque azul
+- [x] Cliente: busca rápida (3 letras → dropdown CTkToplevel), clique fixa com faixa azul + botão ✕
+      - Botão "Sem Cadastro" remove seleção
+- [x] Forma de Pagamento: 4 botões toggle (Dinheiro / PIX / Cartão / Prazo)
+      - Dinheiro / PIX: campo de valor + troco em tempo real (verde=troco, vermelho=faltam)
+      - Prazo: sem campo de valor — exibe mensagem informativa com/sem cliente selecionado
+      - Cartão: botões Débito / Crédito + dropdown parcelas 1x–12x + taxa interna (referência vendedor) + Valor da Parcela
+- [x] Taxas de cartão: Débito 1,66%; Crédito de 2% (1x) a 13% (12x) — apenas referência interna
+- [x] Botão "Finalizar Compra" (verde): valida → registra → limpa carrinho + reset completo do painel
+- [x] Botão "Limpar Carrinho" → após finalizar vira "Imprimir Recibo" (stub Em breve)
+- [x] Fix: database locked → conexões separadas para baixa de estoque e crediário
+
 ### Etapa 5 - Relatórios
 - [ ] `views/relatorios_view.py` — relatórios de vendas, produtos e clientes
 

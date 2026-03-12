@@ -9,6 +9,9 @@ import customtkinter as ctk
 from tkinter import messagebox
 
 from controllers.produto_controller import obter_lista
+from controllers.venda_controller import finalizar_venda
+from models.produto_model import buscar_por_codigo_barras
+from models.cliente_model import listar_clientes
 from utils import formatar_moeda
 
 log = logging.getLogger(__name__)
@@ -16,7 +19,7 @@ log = logging.getLogger(__name__)
 # ------------------------------------------------------------------
 # Colunas das tabelas: (rótulo, largura_px)
 # ------------------------------------------------------------------
-COLS_DISP = [("ID", 44), ("Produto", 190), ("Qtd.", 82), ("Preço", 84), ("Ações", 75)]
+COLS_DISP = [("ID", 44), ("Produto", 155), ("Qtd.", 78), ("Preço", 82), ("Ações", 70)]
 COLS_CARR = [("ID", 44), ("Produto", 175), ("Qtd.", 65), ("Preço", 94), ("Ações", 60)]
 
 # Cores dos botões de filtro: [inativo_fg, ativo_fg, inativo_hover, ativo_hover]
@@ -24,6 +27,13 @@ _FILTRO_CORES = {
     "todos":         ["#3a9adf", "#1f6aa5", "#2a7abf", "#104a85"],
     "promocao":      ["#f5a623", "#d97706", "#d48810", "#b06004"],
     "pouco_estoque": ["#f07070", "#e53935", "#cc3535", "#b01818"],
+}
+
+# Taxas de cartão (referência interna do vendedor — não afeta o preço ao cliente)
+_TAXA_DEBITO = 1.66
+_TAXAS_CREDITO = {
+    1: 2.0,  2: 3.0,  3: 4.0,  4: 5.0,  5: 6.0,  6: 7.0,
+    7: 8.0,  8: 9.0,  9: 10.0, 10: 11.0, 11: 12.0, 12: 13.0,
 }
 
 
@@ -45,8 +55,18 @@ class CarrinhoView(ctk.CTkFrame):
         # Carrinho em memória: lista de dicts (produto_id, nome, quantidade, preco_unitario, subtotal)
         self._carrinho: list[dict] = []
 
-        self.grid_columnconfigure(0, weight=5)
-        self.grid_columnconfigure(1, weight=4)
+        # Estado do Resumo do Pedido (Fase 2)
+        self._cliente_selecionado: dict | None = None
+        self._forma_pagamento: str = "dinheiro"
+        self._tipo_cartao: str = "debito"
+        self._parcelas: int = 1
+        self._desconto_pct: float = 0.0
+        self._venda_finalizada: bool = False
+        self._ultima_venda_id: int | None = None
+        self._dropdown_cliente: ctk.CTkToplevel | None = None
+
+        self.grid_columnconfigure(0, weight=1, uniform="painel")
+        self.grid_columnconfigure(1, weight=1, uniform="painel")
         self.grid_rowconfigure(0, weight=0)  # título
         self.grid_rowconfigure(1, weight=1)  # conteúdo expande
 
@@ -80,20 +100,188 @@ class CarrinhoView(ctk.CTkFrame):
         self._criar_painel_direito()
 
     # ------------------------------------------------------------------
-    # Painel direito — placeholder para a Fase 2
+    # Painel direito — Resumo do Pedido (Fase 2 completa)
     # ------------------------------------------------------------------
     def _criar_painel_direito(self):
+        """Cria o painel direito completo: Resumo do Pedido."""
         card = ctk.CTkFrame(self, fg_color="white", corner_radius=12)
         card.grid(row=1, column=1, padx=(8, 16), pady=(0, 16), sticky="nsew")
         card.grid_columnconfigure(0, weight=1)
-        card.grid_rowconfigure(0, weight=1)
+        card.grid_rowconfigure(0, weight=1)  # scroll ocupa todo o espaço disponível
+        self._painel_dir = card
+
+        # Área de conteúdo rolável
+        sc = ctk.CTkScrollableFrame(card, fg_color="white", corner_radius=0)
+        sc.grid(row=0, column=0, sticky="nsew")
+        sc.grid_columnconfigure(0, weight=1)
+
+        # ── Título ───────────────────────────────────────────────
         ctk.CTkLabel(
-            card,
-            text="📋\n\nResumo do Pedido\n\n(em desenvolvimento...)",
-            font=ctk.CTkFont(size=14),
-            text_color="#cccccc",
-            justify="center",
-        ).grid(row=0, column=0)
+            sc, text="Resumo do Pedido",
+            font=ctk.CTkFont(size=15, weight="bold"),
+            text_color="#1a1a1a", anchor="w",
+        ).grid(row=0, column=0, padx=14, pady=(12, 6), sticky="w")
+
+        # ── Totais (subtotal / desconto / total) ────────────────────
+        tot = ctk.CTkFrame(sc, fg_color="#f7f7f7", corner_radius=8)
+        tot.grid(row=1, column=0, padx=12, pady=(0, 6), sticky="ew")
+        tot.grid_columnconfigure(1, weight=1)
+
+        ctk.CTkLabel(
+            tot, text="Subtotal:",
+            font=ctk.CTkFont(size=12), text_color="#666666",
+        ).grid(row=0, column=0, padx=(10, 4), pady=(8, 2), sticky="w")
+        self.lbl_subtotal = ctk.CTkLabel(
+            tot, text="R$ 0,00",
+            font=ctk.CTkFont(size=12), text_color="#1a1a1a",
+        )
+        self.lbl_subtotal.grid(row=0, column=1, padx=(0, 10), pady=(8, 2), sticky="e")
+
+        # Linha de desconto
+        desc_row = ctk.CTkFrame(tot, fg_color="transparent")
+        desc_row.grid(row=1, column=0, columnspan=2, padx=6, pady=(0, 4), sticky="ew")
+        desc_row.grid_columnconfigure(2, weight=1)
+
+        ctk.CTkLabel(
+            desc_row, text="Desconto %:",
+            font=ctk.CTkFont(size=12), text_color="#666666",
+        ).grid(row=0, column=0, sticky="w", padx=(4, 6))
+        self.entry_desconto = ctk.CTkEntry(
+            desc_row, width=58, height=26, fg_color="white",
+            border_color="#cccccc", font=ctk.CTkFont(size=12),
+            placeholder_text="0",
+        )
+        self.entry_desconto.grid(row=0, column=1)
+        ctk.CTkButton(
+            desc_row, text="Aplicar", width=60, height=26,
+            font=ctk.CTkFont(size=11, weight="bold"),
+            command=self._aplicar_desconto,
+        ).grid(row=0, column=2, padx=(6, 0), sticky="w")
+        self.lbl_desconto_val = ctk.CTkLabel(
+            desc_row, text="",
+            font=ctk.CTkFont(size=11), text_color="#e53935",
+        )
+        self.lbl_desconto_val.grid(row=0, column=3, padx=(8, 4), sticky="e")
+
+        # Destaque do total
+        tot_inner = ctk.CTkFrame(tot, fg_color="#dbeafe", corner_radius=6)
+        tot_inner.grid(row=2, column=0, columnspan=2, padx=8, pady=(0, 8), sticky="ew")
+        tot_inner.grid_columnconfigure(1, weight=1)
+        ctk.CTkLabel(
+            tot_inner, text="Total:",
+            font=ctk.CTkFont(size=13, weight="bold"), text_color="#1e3a5f",
+        ).grid(row=0, column=0, padx=(10, 4), pady=7, sticky="w")
+        self.lbl_total = ctk.CTkLabel(
+            tot_inner, text="R$ 0,00",
+            font=ctk.CTkFont(size=16, weight="bold"), text_color="#1f6aa5",
+        )
+        self.lbl_total.grid(row=0, column=1, padx=(0, 10), pady=7, sticky="e")
+
+        # ── Separador ─────────────────────────────────────────
+        ctk.CTkFrame(sc, fg_color="#e0e0e0", height=1, corner_radius=0).grid(
+            row=2, column=0, padx=12, pady=(0, 6), sticky="ew"
+        )
+
+        # ── Cliente ───────────────────────────────────────────
+        ctk.CTkLabel(
+            sc, text="Cliente",
+            font=ctk.CTkFont(size=12, weight="bold"), text_color="#333333", anchor="w",
+        ).grid(row=3, column=0, padx=14, pady=(0, 4), sticky="w")
+
+        cli_frame = ctk.CTkFrame(sc, fg_color="transparent")
+        cli_frame.grid(row=4, column=0, padx=12, pady=(0, 4), sticky="ew")
+        cli_frame.grid_columnconfigure(0, weight=1)
+
+        self.entry_cliente_busca = ctk.CTkEntry(
+            cli_frame, height=32, fg_color="white",
+            border_color="#cccccc", font=ctk.CTkFont(size=12),
+            placeholder_text="Digite 3 letras do nome...",
+        )
+        self.entry_cliente_busca.grid(row=0, column=0, padx=(0, 6), sticky="ew")
+        self.entry_cliente_busca.bind("<KeyRelease>", self._buscar_cliente)
+        self.entry_cliente_busca.bind("<Escape>", lambda e: self._fechar_dropdown_cliente())
+
+        ctk.CTkButton(
+            cli_frame, text="Sem Cadastro", width=100, height=32,
+            font=ctk.CTkFont(size=11, weight="bold"),
+            fg_color="#888888", hover_color="#666666",
+            command=self._remover_cliente,
+        ).grid(row=0, column=1)
+
+        # Faixa que exibe o cliente selecionado (inicialmente oculta)
+        self.frame_cli_sel = ctk.CTkFrame(sc, fg_color="#f0f7ff", corner_radius=6)
+        self.frame_cli_sel.grid_columnconfigure(0, weight=1)
+        self.lbl_cli_nome = ctk.CTkLabel(
+            self.frame_cli_sel, text="",
+            font=ctk.CTkFont(size=12), text_color="#1f6aa5", anchor="w",
+        )
+        self.lbl_cli_nome.grid(row=0, column=0, padx=(8, 4), pady=5, sticky="w")
+        ctk.CTkButton(
+            self.frame_cli_sel, text="✕", width=24, height=24,
+            fg_color="#e53935", hover_color="#c62828",
+            font=ctk.CTkFont(size=11, weight="bold"),
+            command=self._remover_cliente,
+        ).grid(row=0, column=1, padx=(0, 6), pady=5)
+        # salvar grid info e ocultar
+        self.frame_cli_sel.grid(row=5, column=0, padx=12, pady=(0, 4), sticky="ew")
+        self.frame_cli_sel.grid_remove()
+
+        # ── Separador ─────────────────────────────────────────
+        ctk.CTkFrame(sc, fg_color="#e0e0e0", height=1, corner_radius=0).grid(
+            row=6, column=0, padx=12, pady=(0, 6), sticky="ew"
+        )
+
+        # ── Forma de Pagamento ────────────────────────────
+        ctk.CTkLabel(
+            sc, text="Forma de Pagamento",
+            font=ctk.CTkFont(size=12, weight="bold"), text_color="#333333", anchor="w",
+        ).grid(row=7, column=0, padx=14, pady=(0, 4), sticky="w")
+
+        fp_frame = ctk.CTkFrame(sc, fg_color="transparent")
+        fp_frame.grid(row=8, column=0, padx=12, pady=(0, 6), sticky="ew")
+        _formas = [
+            ("Dinheiro", "dinheiro"),
+            ("PIX",      "pix"),
+            ("Cartão",   "cartao"),
+            ("Prazo",    "a_prazo"),
+        ]
+        self._btns_forma: dict[str, ctk.CTkButton] = {}
+        for col, (label, chave) in enumerate(_formas):
+            btn = ctk.CTkButton(
+                fp_frame, text=label, height=30,
+                font=ctk.CTkFont(size=11, weight="bold"),
+                command=lambda c=chave: self._selecionar_forma(c),
+            )
+            btn.grid(row=0, column=col, padx=(0, 4) if col < 3 else 0, sticky="ew")
+            fp_frame.grid_columnconfigure(col, weight=1)
+            self._btns_forma[chave] = btn
+        self._atualizar_cores_forma()
+
+        # ── Painel dinâmico de pagamento ─────────────────────
+        self.frame_pagamento = ctk.CTkFrame(sc, fg_color="transparent")
+        self.frame_pagamento.grid(row=9, column=0, padx=12, pady=(0, 12), sticky="ew")
+        self.frame_pagamento.grid_columnconfigure(0, weight=1)
+        self._mostrar_painel_pagamento()
+
+        # ── Botões de ação fixos fora do scroll ───────────────
+        sep_btn = ctk.CTkFrame(card, fg_color="#e0e0e0", height=1, corner_radius=0)
+        sep_btn.grid(row=1, column=0, padx=0, pady=0, sticky="ew")
+
+        self.btn_finalizar = ctk.CTkButton(
+            card, text="✅  Finalizar Compra", height=44,
+            font=ctk.CTkFont(size=13, weight="bold"),
+            fg_color="#2e7d32", hover_color="#1b5e20",
+            command=self._finalizar_compra,
+        )
+        self.btn_finalizar.grid(row=2, column=0, padx=12, pady=(8, 4), sticky="ew")
+
+        self.btn_limpar_imprimir = ctk.CTkButton(
+            card, text="🗑️  Limpar Carrinho", height=36,
+            font=ctk.CTkFont(size=12, weight="bold"),
+            fg_color="#888888", hover_color="#666666",
+            command=self._acao_limpar_ou_imprimir,
+        )
+        self.btn_limpar_imprimir.grid(row=3, column=0, padx=12, pady=(0, 12), sticky="ew")
 
     # ------------------------------------------------------------------
     # Card: Produtos Disponíveis
@@ -124,6 +312,7 @@ class CarrinhoView(ctk.CTkFrame):
         )
         self.entry_busca.grid(row=0, column=0, padx=(0, 8), sticky="ew")
         self.entry_busca.bind("<KeyRelease>", lambda e: self._carregar_produtos())
+        self.entry_busca.bind("<Return>", lambda e: self._escanear_produto())
 
         ctk.CTkButton(
             barra, text="🔍 Buscar", width=92, height=36,
@@ -231,6 +420,26 @@ class CarrinhoView(ctk.CTkFrame):
         self.entry_busca.delete(0, "end")
         self._carregar_produtos()
 
+    def _escanear_produto(self):
+        """Chamado ao pressionar Enter (ou pelo leitor de código de barras).
+        Se o código digitado corresponde exatamente a um produto cadastrado,
+        adiciona direto ao carrinho e limpa o campo.
+        """
+        codigo = self.entry_busca.get().strip()
+        if not codigo:
+            return
+
+        # Tenta correspondência exata por código de barras
+        produto = buscar_por_codigo_barras(codigo)
+        if produto:
+            self._adicionar_ao_carrinho(produto)
+            self.entry_busca.delete(0, "end")
+            self._carregar_produtos()  # restaura lista completa
+            return
+
+        # Sem correspondência exata — mantém a busca normal exibida
+        self._carregar_produtos()
+
     def _carregar_produtos(self):
         """Atualiza a tabela de produtos conforme busca e filtro ativo."""
         busca  = self.entry_busca.get().strip()
@@ -274,9 +483,11 @@ class CarrinhoView(ctk.CTkFrame):
             return
 
         for linha, p in enumerate(produtos):
+            # Trunca nome para caber na coluna sem empurrar o botão
+            nome_exib = p["nome"] if len(p["nome"]) <= 18 else p["nome"][:16] + "..."
             dados_cols = [
                 (f"#{p['id']:02d}",          "#555555"),
-                (p["nome"],                    "#1f6aa5"),
+                (nome_exib,                    "#1f6aa5"),
                 (str(p["quantidade"]),         "#1a1a1a"),
                 (formatar_moeda(p["preco"]),   "#1a1a1a"),
             ]
@@ -365,15 +576,15 @@ class CarrinhoView(ctk.CTkFrame):
             fa.grid(row=linha, column=4, padx=(2, 0), pady=2, sticky="w")
 
             ctk.CTkButton(
-                fa, text="✏️", width=26, height=24,
-                fg_color="transparent", hover_color="#e0e0e0",
-                font=ctk.CTkFont(size=12),
+                fa, text="✏️", width=30, height=26,
+                fg_color="#dbeafe", hover_color="#93c5fd",
+                font=ctk.CTkFont(size=13),
                 command=lambda i=linha: self._editar_item(i),
-            ).grid(row=0, column=0)
+            ).grid(row=0, column=0, padx=(0, 2))
             ctk.CTkButton(
-                fa, text="🗑️", width=26, height=24,
-                fg_color="transparent", hover_color="#fde8e8",
-                font=ctk.CTkFont(size=12),
+                fa, text="🗑️", width=30, height=26,
+                fg_color="#fee2e2", hover_color="#fca5a5",
+                font=ctk.CTkFont(size=13),
                 command=lambda i=linha: self._remover_item(i),
             ).grid(row=0, column=1)
 
@@ -389,19 +600,426 @@ class CarrinhoView(ctk.CTkFrame):
         self._recarregar_carrinho()
 
     # ------------------------------------------------------------------
-    # Resumo do Pedido — stub (completo na Fase 2)
+    # Resumo do Pedido — atualização de totais
     # ------------------------------------------------------------------
     def _atualizar_resumo(self):
-        """
-        Atualiza o painel de Resumo do Pedido com os totais do carrinho.
-        Implementação completa na Fase 2 da Etapa 4.
-        """
-        pass
+        """Recalcula subtotal, desconto e total e atualiza os rótulos do painel direito."""
+        if not hasattr(self, "lbl_subtotal"):
+            return
+
+        subtotal     = sum(item["subtotal"] for item in self._carrinho)
+        desconto_val = round(subtotal * self._desconto_pct / 100, 2)
+        total        = round(subtotal - desconto_val, 2)
+
+        self.lbl_subtotal.configure(text=formatar_moeda(subtotal))
+        self.lbl_total.configure(text=formatar_moeda(total))
+
+        if desconto_val > 0:
+            self.lbl_desconto_val.configure(text=f"- {formatar_moeda(desconto_val)}")
+        else:
+            self.lbl_desconto_val.configure(text="")
+
+        # Atualiza valor da parcela no painel de cartão crédito
+        if (
+            self._forma_pagamento == "cartao"
+            and self._tipo_cartao == "credito"
+            and hasattr(self, "lbl_valor_parcela")
+            and self._parcelas > 0
+        ):
+            vp = total / self._parcelas
+            self.lbl_valor_parcela.configure(text=f"Valor da Parcela: {formatar_moeda(vp)}")
 
     def _limpar_carrinho(self):
         """Esvazia todo o carrinho."""
         self._carrinho.clear()
         self._recarregar_carrinho()
+
+    # ------------------------------------------------------------------
+    # Fase 2: desconto
+    # ------------------------------------------------------------------
+    def _aplicar_desconto(self):
+        """Lê o percentual do entry e atualiza o total."""
+        try:
+            pct = float(self.entry_desconto.get().strip().replace(",", "."))
+            if pct < 0 or pct > 100:
+                raise ValueError
+            self._desconto_pct = pct
+        except ValueError:
+            messagebox.showerror("Erro", "Digite um desconto v\u00e1lido entre 0 e 100.")
+            return
+        self._atualizar_resumo()
+
+    # ------------------------------------------------------------------
+    # Fase 2: busca e sele\u00e7\u00e3o de cliente
+    # ------------------------------------------------------------------
+    def _buscar_cliente(self, event=None):
+        """Abre dropdown com sugest\u00f5es de cliente a partir de 3 caracteres."""
+        texto = self.entry_cliente_busca.get().strip()
+
+        # Fecha dropdown anterior
+        self._fechar_dropdown_cliente()
+
+        if len(texto) < 3:
+            return
+
+        clientes = listar_clientes(texto)
+        if not clientes:
+            return
+
+        entry = self.entry_cliente_busca
+        x = entry.winfo_rootx()
+        y = entry.winfo_rooty() + entry.winfo_height() + 2
+        w = entry.winfo_width()
+        h = min(len(clientes) * 34, 170)
+
+        dd = ctk.CTkToplevel(self)
+        dd.wm_overrideredirect(True)
+        dd.geometry(f"{w}x{h}+{x}+{y}")
+        dd.lift()
+
+        scroll = ctk.CTkScrollableFrame(dd, fg_color="white")
+        scroll.pack(fill="both", expand=True)
+
+        for c in clientes[:8]:
+            ctk.CTkButton(
+                scroll,
+                text=c["nome"],
+                anchor="w",
+                fg_color="white",
+                hover_color="#dbeafe",
+                text_color="#1a1a1a",
+                font=ctk.CTkFont(size=12),
+                height=30,
+                command=lambda cli=c: self._selecionar_cliente(cli),
+            ).pack(fill="x", padx=2, pady=1)
+
+        self._dropdown_cliente = dd
+
+    def _fechar_dropdown_cliente(self):
+        """Fecha o dropdown de sugest\u00f5es de cliente."""
+        if self._dropdown_cliente and self._dropdown_cliente.winfo_exists():
+            self._dropdown_cliente.destroy()
+        self._dropdown_cliente = None
+
+    def _selecionar_cliente(self, cliente: dict):
+        """Fixa o cliente e exibe a faixa de confirma\u00e7\u00e3o."""
+        self._cliente_selecionado = cliente
+        self.entry_cliente_busca.delete(0, "end")
+        self._fechar_dropdown_cliente()
+        self.lbl_cli_nome.configure(text=f"\ud83d\udc64  {cliente['nome']}")
+        self.frame_cli_sel.grid()
+        # Atualiza aviso de prazo sem cliente, se n\u00e3o houver mais
+        if self._forma_pagamento == "a_prazo":
+            self._mostrar_painel_pagamento()
+
+    def _remover_cliente(self):
+        """Remove o cliente selecionado."""
+        self._cliente_selecionado = None
+        self.entry_cliente_busca.delete(0, "end")
+        self.frame_cli_sel.grid_remove()
+        if self._forma_pagamento == "a_prazo":
+            self._mostrar_painel_pagamento()
+
+    # ------------------------------------------------------------------
+    # Fase 2: forma de pagamento
+    # ------------------------------------------------------------------
+    def _selecionar_forma(self, forma: str):
+        """Altera a forma de pagamento ativa e reconstr\u00f3i o painel din\u00e2mico."""
+        self._forma_pagamento = forma
+        self._atualizar_cores_forma()
+        self._mostrar_painel_pagamento()
+
+    def _atualizar_cores_forma(self):
+        """Destaca visualmente o bot\u00e3o da forma de pagamento ativa."""
+        if not hasattr(self, "_btns_forma"):
+            return
+        for chave, btn in self._btns_forma.items():
+            ativo = (chave == self._forma_pagamento)
+            btn.configure(
+                fg_color="#1f6aa5" if ativo else "#3a9adf",
+                hover_color="#104a85" if ativo else "#2a7abf",
+            )
+
+    def _mostrar_painel_pagamento(self):
+        """Reconstr\u00f3i o painel din\u00e2mico conforme a forma selecionada."""
+        for w in self.frame_pagamento.winfo_children():
+            w.destroy()
+        if self._forma_pagamento == "cartao":
+            self._construir_painel_cartao()
+        else:
+            self._construir_painel_simples()
+
+    def _construir_painel_simples(self):
+        """Painel de Dinheiro / PIX / Prazo."""
+        inner = ctk.CTkFrame(self.frame_pagamento, fg_color="#f7f7f7", corner_radius=8)
+        inner.grid(row=0, column=0, sticky="ew")
+        inner.grid_columnconfigure(1, weight=1)
+
+        nomes = {"dinheiro": "Dinheiro", "pix": "PIX", "a_prazo": "Prazo"}
+        titulo = nomes.get(self._forma_pagamento, "Valor")
+
+        ctk.CTkLabel(
+            inner, text=titulo,
+            font=ctk.CTkFont(size=12, weight="bold"), text_color="#333333",
+        ).grid(row=0, column=0, columnspan=2, padx=10, pady=(8, 4), sticky="w")
+
+        # Prazo: sem campo de valor — vai para o crediário do cliente
+        if self._forma_pagamento == "a_prazo":
+            msg = (
+                "⚠️  Selecione um cliente para venda a prazo."
+                if not self._cliente_selecionado
+                else f"✅  O valor será lançado no crediário de {self._cliente_selecionado['nome']}."
+            )
+            cor = "#e53935" if not self._cliente_selecionado else "#2e7d32"
+            ctk.CTkLabel(
+                inner, text=msg,
+                font=ctk.CTkFont(size=11), text_color=cor,
+                wraplength=280, justify="left",
+            ).grid(row=1, column=0, columnspan=2, padx=10, pady=(0, 10), sticky="w")
+            return
+
+        # Dinheiro / PIX: campo de valor + troco
+        ctk.CTkLabel(
+            inner, text="R$", font=ctk.CTkFont(size=13), text_color="#444444",
+        ).grid(row=1, column=0, padx=(10, 4), pady=(0, 4), sticky="w")
+
+        self.entry_valor_pago = ctk.CTkEntry(
+            inner, height=30, fg_color="white",
+            border_color="#cccccc", font=ctk.CTkFont(size=13),
+            placeholder_text="Digite o valor recebido...",
+        )
+        self.entry_valor_pago.grid(row=1, column=1, padx=(0, 10), pady=(0, 4), sticky="ew")
+        self.entry_valor_pago.bind("<KeyRelease>", self._calcular_troco)
+
+        # Linha de troco (inicialmente vazia)
+        self.lbl_troco = ctk.CTkLabel(
+            inner, text="",
+            font=ctk.CTkFont(size=12, weight="bold"), text_color="#2e7d32",
+            anchor="e",
+        )
+        self.lbl_troco.grid(row=2, column=0, columnspan=2, padx=10, pady=(0, 8), sticky="ew")
+
+    def _calcular_troco(self, event=None):
+        """Atualiza o rótulo de troco conforme o valor digitado."""
+        if not hasattr(self, "lbl_troco") or not self.lbl_troco.winfo_exists():
+            return
+        try:
+            valor_pago = float(
+                self.entry_valor_pago.get().strip().replace(",", ".")
+            )
+        except ValueError:
+            self.lbl_troco.configure(text="")
+            return
+
+        subtotal     = sum(item["subtotal"] for item in self._carrinho)
+        desconto_val = round(subtotal * self._desconto_pct / 100, 2)
+        total        = round(subtotal - desconto_val, 2)
+        troco        = round(valor_pago - total, 2)
+
+        if troco >= 0:
+            self.lbl_troco.configure(
+                text=f"Troco: {formatar_moeda(troco)}",
+                text_color="#2e7d32",
+            )
+        else:
+            self.lbl_troco.configure(
+                text=f"Faltam: {formatar_moeda(abs(troco))}",
+                text_color="#e53935",
+            )
+
+    def _construir_painel_cartao(self):
+        """Painel de Cart\u00e3o: D\u00e9bito / Cr\u00e9dito + parcelas (apenas cr\u00e9dito)."""
+        inner = ctk.CTkFrame(self.frame_pagamento, fg_color="#f7f7f7", corner_radius=8)
+        inner.grid(row=0, column=0, sticky="ew")
+        inner.grid_columnconfigure((0, 1), weight=1)
+
+        ctk.CTkLabel(
+            inner, text="Cart\u00e3o",
+            font=ctk.CTkFont(size=12, weight="bold"), text_color="#333333",
+        ).grid(row=0, column=0, columnspan=2, padx=10, pady=(8, 6), sticky="w")
+
+        # Bot\u00f5es D\u00e9bito / Cr\u00e9dito
+        tipos = ctk.CTkFrame(inner, fg_color="transparent")
+        tipos.grid(row=1, column=0, columnspan=2, padx=8, pady=(0, 4), sticky="ew")
+        tipos.grid_columnconfigure((0, 1), weight=1)
+
+        self.btn_debito = ctk.CTkButton(
+            tipos, text="D\u00e9bito", height=28,
+            font=ctk.CTkFont(size=11, weight="bold"),
+            command=lambda: self._selecionar_tipo_cartao("debito"),
+        )
+        self.btn_debito.grid(row=0, column=0, padx=(0, 4), sticky="ew")
+
+        self.btn_credito = ctk.CTkButton(
+            tipos, text="Cr\u00e9dito", height=28,
+            font=ctk.CTkFont(size=11, weight="bold"),
+            command=lambda: self._selecionar_tipo_cartao("credito"),
+        )
+        self.btn_credito.grid(row=0, column=1, padx=(4, 0), sticky="ew")
+        self._atualizar_cores_tipo_cartao()
+
+        # Informa\u00e7\u00e3o de taxa (apenas refer\u00eancia interna)
+        if self._tipo_cartao == "debito":
+            taxa_str = f"Taxa interna: {_TAXA_DEBITO:.2f}%"
+        else:
+            taxa = _TAXAS_CREDITO.get(self._parcelas, 0.0)
+            taxa_str = f"Taxa interna: {taxa:.2f}%"
+        ctk.CTkLabel(
+            inner, text=taxa_str,
+            font=ctk.CTkFont(size=10), text_color="#aaaaaa",
+        ).grid(row=2, column=0, columnspan=2, padx=10, pady=(0, 4), sticky="w")
+
+        # Parcelas (apenas cr\u00e9dito)
+        if self._tipo_cartao == "credito":
+            parc_row = ctk.CTkFrame(inner, fg_color="transparent")
+            parc_row.grid(row=3, column=0, columnspan=2, padx=8, pady=(0, 4), sticky="ew")
+            parc_row.grid_columnconfigure(1, weight=1)
+
+            ctk.CTkLabel(
+                parc_row, text="Parcelas:",
+                font=ctk.CTkFont(size=12), text_color="#555555",
+            ).grid(row=0, column=0, padx=(0, 8), sticky="w")
+
+            opcoes = [f"{n}x" for n in range(1, 13)]
+            self.opt_parcelas = ctk.CTkOptionMenu(
+                parc_row, values=opcoes, width=80, height=28,
+                font=ctk.CTkFont(size=12),
+                command=self._selecionar_parcelas,
+            )
+            self.opt_parcelas.set(f"{self._parcelas}x")
+            self.opt_parcelas.grid(row=0, column=1, sticky="w")
+
+            # Valor da parcela
+            subtotal     = sum(item["subtotal"] for item in self._carrinho)
+            desconto_val = round(subtotal * self._desconto_pct / 100, 2)
+            total        = round(subtotal - desconto_val, 2)
+            vp = total / self._parcelas if self._parcelas > 0 else total
+
+            self.lbl_valor_parcela = ctk.CTkLabel(
+                inner,
+                text=f"Valor da Parcela: {formatar_moeda(vp)}",
+                font=ctk.CTkFont(size=12, weight="bold"), text_color="#1f6aa5",
+            )
+            self.lbl_valor_parcela.grid(
+                row=4, column=0, columnspan=2, padx=10, pady=(0, 8), sticky="w"
+            )
+        else:
+            ctk.CTkFrame(inner, fg_color="transparent", height=8).grid(row=3, column=0)
+
+    def _selecionar_tipo_cartao(self, tipo: str):
+        """Alterna D\u00e9bito / Cr\u00e9dito e reconstr\u00f3i o painel de cart\u00e3o."""
+        self._tipo_cartao = tipo
+        if tipo == "debito":
+            self._parcelas = 1
+        self._mostrar_painel_pagamento()
+
+    def _atualizar_cores_tipo_cartao(self):
+        """Destaca o tipo de cart\u00e3o ativo (D\u00e9bito ou Cr\u00e9dito)."""
+        if not hasattr(self, "btn_debito"):
+            return
+        debito_ativo = (self._tipo_cartao == "debito")
+        self.btn_debito.configure(
+            fg_color="#1f6aa5" if debito_ativo else "#3a9adf",
+            hover_color="#104a85" if debito_ativo else "#2a7abf",
+        )
+        self.btn_credito.configure(
+            fg_color="#3a9adf" if debito_ativo else "#1f6aa5",
+            hover_color="#2a7abf" if debito_ativo else "#104a85",
+        )
+
+    def _selecionar_parcelas(self, valor: str):
+        """Atualiza parcelas e reconstr\u00f3i o painel para exibir taxa e valor da parcela."""
+        try:
+            self._parcelas = int(valor.replace("x", ""))
+        except ValueError:
+            self._parcelas = 1
+        self._mostrar_painel_pagamento()
+        self._atualizar_resumo()
+
+    # ------------------------------------------------------------------
+    # Fase 2: finalizar, limpar, imprimir
+    # ------------------------------------------------------------------
+    def _finalizar_compra(self):
+        """Valida o carrinho e registra a venda no banco de dados."""
+        if not self._carrinho:
+            messagebox.showwarning("Aten\u00e7\u00e3o", "O carrinho est\u00e1 vazio.")
+            return
+
+        if self._forma_pagamento == "a_prazo" and not self._cliente_selecionado:
+            messagebox.showwarning("Aten\u00e7\u00e3o", "Selecione um cliente para venda a prazo.")
+            return
+
+        cliente_id = self._cliente_selecionado["id"] if self._cliente_selecionado else None
+
+        if self._forma_pagamento == "cartao":
+            taxa = (
+                _TAXA_DEBITO
+                if self._tipo_cartao == "debito"
+                else _TAXAS_CREDITO.get(self._parcelas, 0.0)
+            )
+        else:
+            taxa = 0.0
+
+        ok, resultado = finalizar_venda(
+            itens_carrinho=self._carrinho,
+            cliente_id=cliente_id,
+            forma_pagamento=self._forma_pagamento,
+            desconto_pct=self._desconto_pct,
+            taxa_cartao=taxa,
+            parcelas=self._parcelas,
+        )
+
+        if not ok:
+            messagebox.showerror("Erro ao finalizar", resultado)
+            return
+
+        self._ultima_venda_id = resultado
+        self._venda_finalizada = True
+
+        # Limpa o carrinho e reseta estado
+        self._carrinho.clear()
+        self._cliente_selecionado = None
+        self._desconto_pct = 0.0
+        self._parcelas = 1
+        self._forma_pagamento = "dinheiro"
+        self.entry_desconto.delete(0, "end")
+        self.frame_cli_sel.grid_remove()
+        self.entry_cliente_busca.delete(0, "end")
+        self._recarregar_carrinho()
+        self._atualizar_cores_forma()
+        self._mostrar_painel_pagamento()
+
+        # Troca botão Limpar → Imprimir Recibo
+        self.btn_limpar_imprimir.configure(
+            text="🖨️  Imprimir Recibo",
+            fg_color="#1f6aa5", hover_color="#104a85",
+            command=self._imprimir_recibo,
+        )
+        messagebox.showinfo("Venda Finalizada", f"Venda #{resultado} registrada com sucesso!")
+
+    def _imprimir_recibo(self):
+        """Stub: impress\u00e3o de recibo (implementar nas pr\u00f3ximas etapas)."""
+        messagebox.showinfo(
+            "Em breve",
+            "A impress\u00e3o de recibo ser\u00e1 implementada nas pr\u00f3ximas etapas.",
+        )
+
+    def _acao_limpar_ou_imprimir(self):
+        """A\u00e7\u00e3o padr\u00e3o do bot\u00e3o inferior: limpa o carrinho com confirma\u00e7\u00e3o."""
+        if not messagebox.askyesno("Limpar Carrinho", "Deseja remover todos os itens do carrinho?"):
+            return
+        self._limpar_carrinho()
+        self._venda_finalizada = False
+        self._ultima_venda_id = None
+        self._desconto_pct    = 0.0
+        self.entry_desconto.delete(0, "end")
+        # Restaura bot\u00e3o
+        self.btn_limpar_imprimir.configure(
+            text="\ud83d\uddd1\ufe0f  Limpar Carrinho",
+            fg_color="#888888", hover_color="#666666",
+            command=self._acao_limpar_ou_imprimir,
+        )
+        self._atualizar_resumo()
 
 
 # ------------------------------------------------------------------

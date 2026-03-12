@@ -41,20 +41,20 @@ Sistema Caixa/
 │   ├── cliente_detalhe.py       # ✅ Detalhe do cliente — redesign com tabelas crediário e pagamentos (11/03/2026)
 │   ├── crediario_item_form.py   # ✅ Popup CTkToplevel para adicionar/editar item do crediário
 │   ├── pagamento_form.py        # ✅ Popup CTkToplevel para registrar/editar pagamento
-│   ├── carrinho_view.py         # (Etapa 4 - pendente)
+│   ├── carrinho_view.py         # ✅ Carrinho completo — Fase 1+2 (11/03/2026)
 │   ├── relatorios_view.py       # (Etapa 5 - pendente)
 │   └── configuracoes_view.py    # (Etapa 6 - pendente)
 │
 ├── controllers/                 # Lógica de negócio
 │   ├── produto_controller.py    # CRUD produtos, EAN-13, status estoque, imagens
 │   ├── cliente_controller.py    # ✅ CRUD clientes, status crediário, imagens (Etapa 3)
-│   └── venda_controller.py      # (Etapa 4 - pendente)
+│   └── venda_controller.py      # ✅ finalizar_venda + baixa estoque + crediário (Etapa 4)
 │
 ├── models/                      # Consultas ao banco de dados
 │   ├── produto_model.py         # SQL produtos: listar, filtros, resumo, estoque baixo, próx. vencer
 │   ├── cliente_model.py         # ✅ SQL clientes: listar, filtros, resumo, em atraso (Etapa 3)
 │   ├── crediario_model.py       # ✅ CRUD crediario_itens + historico_pagamentos + calcular_saldo
-│   └── venda_model.py           # (Etapa 4 - pendente)
+│   └── venda_model.py           # ✅ CRUD vendas + itens_venda + totais do dia (Etapa 4)
 │
 ├── imagens/                     # Imagens do sistema
 │   ├── produtos/                # Fotos de upload dos produtos
@@ -89,12 +89,14 @@ Etapa 3 - Clientes
   - Upload de foto do cliente
   - Crediário pertence aos clientes que aparecerá na tela inicial.
 
-Etapa 4 - Carrinho
-  - Registrar vendas
-  - Aplicar descontos
-  - Baixar estoque automaticamente ao vender
-  - Forma de pagamento "A prazo" → inserir itens automaticamente no crediário do cliente
-    (chamar crediario_model.inserir_item() para cada item da venda; cliente deve ter tem_crediario=1)
+Etapa 4 - Carrinho ✅ (concluída em 11/03/2026)
+  - Painel esquerdo: Produtos Disponíveis (busca, filtros, leitor de código de barras) + Itens no Carrinho
+  - Painel direito: Resumo do Pedido (totais, desconto, cliente, forma de pagamento, troco, parcelas)
+  - Formas de pagamento: Dinheiro/PIX (campo + troco em tempo real) | Prazo (lança no crediário) | Cartão (Débito/Crédito + parcelas)
+  - Finalizar Compra → baixa estoque → crediário (se a_prazo) → limpa carrinho automaticamente
+  - Arquivos: views/carrinho_view.py, controllers/venda_controller.py, models/venda_model.py
+  - REGRA: crediario_model.inserir_item() DEVE ser chamado em conexão separada (após commit+close do estoque)
+  - Taxas cartão são internas (referência do vendedor); NÃO afetam o total_final do cliente
   
 Etapa 5 - Relatórios
   - Relatórios de vendas, produtos e clientes
