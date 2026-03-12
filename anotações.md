@@ -191,6 +191,17 @@ Repositório: https://github.com/CaleoSouza/sistema-caixa
 - [x] Botão "Limpar Carrinho" → após finalizar vira "Imprimir Recibo" (stub Em breve)
 - [x] Fix: database locked → conexões separadas para baixa de estoque e crediário
 
+### Ajustes visuais Carrinho (12/03/2026)
+- [x] Tabelas responsivas: COLS_DISP e COLS_CARR trocaram largura fixa (px) por peso relativo (weight)
+      - Colunas configuram `grid_columnconfigure(i, weight=peso)` sem `width=` nos labels
+      - Labels com `sticky="ew"` preenchem a célula proporcionalmente em qualquer resolução
+- [x] Coluna "Ações" com largura fixa via `minsize=80` nos três frames (cabeçalho, scroll_produtos, scroll_carrinho)
+      - Ajuste centralizado: procurar `minsize=80` no arquivo para testar tamanhos
+- [x] Botão "+ Adic." com tamanho fixo `width=72` (sem sticky="ew")
+- [x] Botões ✏️ e 🗑️ com `width=34` cada, sem sticky="ew" → compactos/quadradinhos
+      - Removido `fa.grid_columnconfigure((0,1), weight=1)` que os forçava a esticar
+- [x] Fix cantos arredondados do painel direito: CTkScrollableFrame com `corner_radius=12` e `padx=2, pady=(2,0)`
+
 ### Etapa 5 - Relatórios
 - [ ] `views/relatorios_view.py` — relatórios de vendas, produtos e clientes
 
