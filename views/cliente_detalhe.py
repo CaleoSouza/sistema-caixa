@@ -22,7 +22,7 @@ from models.crediario_model import (
     excluir_pagamento,
     calcular_saldo,
 )
-from utils import formatar_moeda, formatar_cpf, formatar_telefone
+from utils import formatar_moeda, formatar_cpf, formatar_telefone, formatar_data
 
 log = logging.getLogger(__name__)
 
@@ -175,11 +175,12 @@ class ClienteDetalhe(ctk.CTkFrame):
         )
 
         campos = [
-            ("CPF",        formatar_cpf(c.get("cpf") or "") or "—"),
-            ("Telefone",   formatar_telefone(c.get("telefone") or "") or "—"),
-            ("E-mail",     c.get("email") or "—"),
-            ("Nascimento", c.get("data_nascimento") or "—"),
-            ("Cidade",     c.get("cidade") or "—"),
+            ("CPF",           formatar_cpf(c.get("cpf") or "") or "—"),
+            ("Telefone",      formatar_telefone(c.get("telefone") or "") or "—"),
+            ("E-mail",        c.get("email") or "—"),
+            ("Nascimento",    c.get("data_nascimento") or "—"),
+            ("Cidade",        c.get("cidade") or "—"),
+            ("Cadastrado em", formatar_data(c.get("criado_em") or "") or "—"),
         ]
 
         for i, (rot, val) in enumerate(campos):

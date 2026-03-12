@@ -9,6 +9,7 @@ from database import criar_tabelas
 from views.home_view import HomeView
 from views.produtos_view import ProdutosView
 from views.clientes_view import ClientesView
+from views.carrinho_view import CarrinhoView
 
 
 # ------------------------------------------------------------------
@@ -213,7 +214,7 @@ class App(ctk.CTk):
         # --- Botões de navegação ---
         # Formato: (texto, ícone unicode, classe da view)
         self.nav_botoes = [
-            ("Carrinho",      "🛒", None),           # CarrinhoView (Etapa 4)
+            ("Carrinho",      "🛒", CarrinhoView),   # ✅ Etapa 4
             ("Produtos",      "📦", ProdutosView),   # ✅ Etapa 2
             ("Clientes",      "👤", ClientesView),   # ✅ Etapa 3
             ("Relatórios",    "📊", None),           # RelatoriosView (Etapa 5)

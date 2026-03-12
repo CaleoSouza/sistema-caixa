@@ -176,21 +176,23 @@ class ProdutoDetalhe(ctk.CTkFrame):
         # ------------------------------------------------------------------
         # Campos exibidos: (rótulo, valor)
         # ------------------------------------------------------------------
-        validade = formatar_data(p.get("data_validade") or "") if p.get("data_validade") else "—"
+        validade     = formatar_data(p.get("data_validade") or "") if p.get("data_validade") else "—"
         preco        = formatar_moeda(p.get("preco", 0))
         preco_custo  = formatar_moeda(p.get("preco_custo", 0))
         total_valor  = formatar_moeda(p.get("preco", 0) * p.get("quantidade", 0))
+        cadastrado   = formatar_data(p.get("criado_em") or "") or "—"
 
         campos = [
-            ("Categoria",       p.get("categoria")    or "—"),
-            ("Fornecedor",      p.get("fornecedor")   or "—"),
+            ("Categoria",        p.get("categoria")     or "—"),
+            ("Fornecedor",       p.get("fornecedor")    or "—"),
             ("Código de Barras", p.get("codigo_barras") or "—"),
-            ("Validade",        validade),
-            ("Preço de Venda",  preco),
-            ("Preço de Custo",  preco_custo),
-            ("Quantidade",      str(p.get("quantidade", 0))),
-            ("Estoque Mínimo",  str(p.get("estoque_minimo", 5))),
-            ("Valor Total",     total_valor),
+            ("Validade",         validade),
+            ("Preço de Venda",   preco),
+            ("Preço de Custo",   preco_custo),
+            ("Quantidade",       str(p.get("quantidade", 0))),
+            ("Estoque Mínimo",   str(p.get("estoque_minimo", 5))),
+            ("Valor Total",      total_valor),
+            ("Cadastrado em",    cadastrado),
         ]
 
         linha = 0

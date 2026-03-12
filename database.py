@@ -93,6 +93,8 @@ def criar_tabelas():
             desconto         REAL             DEFAULT 0.0,
             total_final      REAL    NOT NULL DEFAULT 0.0,
             forma_pagamento  TEXT             DEFAULT 'dinheiro',
+            taxa_cartao      REAL             DEFAULT 0.0,
+            parcelas         INTEGER          DEFAULT 1,
             status           TEXT             DEFAULT 'concluida',
             criado_em        TEXT             DEFAULT (datetime('now','localtime')),
             FOREIGN KEY (cliente_id) REFERENCES clientes(id)
@@ -194,6 +196,14 @@ def _migrar_tabelas(conn):
     for nome, tipo in [("cidade", "TEXT"), ("data_nascimento", "TEXT")]:
         if nome not in colunas_clientes:
             conn.execute(f"ALTER TABLE clientes ADD COLUMN {nome} {tipo}")
+
+    # Migrações da tabela vendas
+    colunas_vendas = [
+        row[1] for row in conn.execute("PRAGMA table_info(vendas)")
+    ]
+    for nome, tipo in [("taxa_cartao", "REAL DEFAULT 0.0"), ("parcelas", "INTEGER DEFAULT 1")]:
+        if nome not in colunas_vendas:
+            conn.execute(f"ALTER TABLE vendas ADD COLUMN {nome} {tipo}")
 
 
 # Permite inicializar o banco executando este arquivo diretamente
