@@ -66,6 +66,9 @@ class CarrinhoView(ctk.CTkFrame):
         self._ultima_venda_id: int | None = None
         self._dropdown_cliente: ctk.CTkToplevel | None = None
 
+        # Controle de estado do painel Resumo do Pedido
+        self._resumo_ativo: bool = False
+
         self.grid_columnconfigure(0, weight=1, uniform="painel")
         self.grid_columnconfigure(1, weight=1, uniform="painel")
         self.grid_rowconfigure(0, weight=0)  # título
@@ -99,6 +102,9 @@ class CarrinhoView(ctk.CTkFrame):
 
         # Coluna direita — placeholder (Fase 2)
         self._criar_painel_direito()
+
+        # Aplica estado inicial do resumo (inativo se carrinho vazio)
+        self._toggle_resumo(len(self._carrinho) > 0)
 
     # ------------------------------------------------------------------
     # Painel direito — Resumo do Pedido (Fase 2 completa)
@@ -153,11 +159,12 @@ class CarrinhoView(ctk.CTkFrame):
             placeholder_text="0",
         )
         self.entry_desconto.grid(row=0, column=1)
-        ctk.CTkButton(
+        self._btn_aplicar_desconto = ctk.CTkButton(
             desc_row, text="Aplicar", width=60, height=26,
             font=ctk.CTkFont(size=11, weight="bold"),
             command=self._aplicar_desconto,
-        ).grid(row=0, column=2, padx=(6, 0), sticky="w")
+        )
+        self._btn_aplicar_desconto.grid(row=0, column=2, padx=(6, 0), sticky="w")
         self.lbl_desconto_val = ctk.CTkLabel(
             desc_row, text="",
             font=ctk.CTkFont(size=11), text_color="#e53935",
@@ -202,12 +209,13 @@ class CarrinhoView(ctk.CTkFrame):
         self.entry_cliente_busca.bind("<KeyRelease>", self._buscar_cliente)
         self.entry_cliente_busca.bind("<Escape>", lambda e: self._fechar_dropdown_cliente())
 
-        ctk.CTkButton(
+        self._btn_sem_cadastro = ctk.CTkButton(
             cli_frame, text="Sem Cadastro", width=100, height=32,
             font=ctk.CTkFont(size=11, weight="bold"),
             fg_color="#888888", hover_color="#666666",
             command=self._remover_cliente,
-        ).grid(row=0, column=1)
+        )
+        self._btn_sem_cadastro.grid(row=0, column=1)
 
         # Faixa que exibe o cliente selecionado (inicialmente oculta)
         self.frame_cli_sel = ctk.CTkFrame(sc, fg_color="#f0f7ff", corner_radius=6)
@@ -560,6 +568,7 @@ class CarrinhoView(ctk.CTkFrame):
                 font=ctk.CTkFont(size=12), text_color="#888888",
             ).grid(row=0, column=0, columnspan=len(COLS_CARR) + 1, pady=14)
             self._atualizar_resumo()
+            self._toggle_resumo(False)
             return
 
         for linha, item in enumerate(self._carrinho):
@@ -583,17 +592,18 @@ class CarrinhoView(ctk.CTkFrame):
             ctk.CTkButton(
                 fa, text="✏️", width=34, height=26,
                 fg_color="#dbeafe", hover_color="#93c5fd",
-                font=ctk.CTkFont(size=13),
+                font=ctk.CTkFont(size=13), text_color="#000000",
                 command=lambda i=linha: self._editar_item(i),
             ).grid(row=0, column=0, padx=(0, 2))
             ctk.CTkButton(
                 fa, text="🗑️", width=34, height=26,
                 fg_color="#fee2e2", hover_color="#fca5a5",
-                font=ctk.CTkFont(size=13),
+                font=ctk.CTkFont(size=13), text_color="#000000",
                 command=lambda i=linha: self._remover_item(i),
             ).grid(row=0, column=1)
 
         self._atualizar_resumo()
+        self._toggle_resumo(True)
 
     def _editar_item(self, indice: int):
         """Abre popup modal para editar quantidade e preço de um item do carrinho."""
@@ -753,6 +763,64 @@ class CarrinhoView(ctk.CTkFrame):
             self._construir_painel_cartao()
         else:
             self._construir_painel_simples()
+        # Re-aplica disabled se o resumo ainda estiver inativo
+        if not self._resumo_ativo:
+            for w in self.frame_pagamento.winfo_children():
+                self._toggle_widget_recursivo(w, "disabled")
+
+    # ------------------------------------------------------------------
+    # Controle visual do Resumo do Pedido (ativo/inativo)
+    # ------------------------------------------------------------------
+    def _toggle_resumo(self, ativo: bool):
+        """Ativa ou desativa visualmente o painel Resumo do Pedido.
+        Quando inativo (carrinho vazio), o card fica acinzentado e todos
+        os controles interativos ficam desabilitados.
+        """
+        self._resumo_ativo = ativo
+
+        # Painel direito ainda não foi construído (chamada durante __init__)
+        if not hasattr(self, "_painel_dir"):
+            return
+
+        state = "normal" if ativo else "disabled"
+
+        # Cor de fundo do card
+        self._painel_dir.configure(fg_color="white" if ativo else "#efefef")
+
+        # Widgets estaticos interativos
+        widgets_estaticos = [
+            self.entry_desconto,
+            self._btn_aplicar_desconto,
+            self.entry_cliente_busca,
+            self._btn_sem_cadastro,
+            self.btn_finalizar,
+            self.btn_limpar_imprimir,
+        ]
+        for w in widgets_estaticos:
+            try:
+                w.configure(state=state)
+            except Exception:
+                pass
+
+        # Botoes de forma de pagamento
+        for btn in self._btns_forma.values():
+            try:
+                btn.configure(state=state)
+            except Exception:
+                pass
+
+        # Widgets do painel dinamico de pagamento
+        for w in self.frame_pagamento.winfo_children():
+            self._toggle_widget_recursivo(w, state)
+
+    def _toggle_widget_recursivo(self, widget, state: str):
+        """Aplica state recursivamente em widgets descendentes."""
+        try:
+            widget.configure(state=state)
+        except Exception:
+            pass
+        for child in widget.winfo_children():
+            self._toggle_widget_recursivo(child, state)
 
     def _construir_painel_simples(self):
         """Painel de Dinheiro / PIX / Prazo."""
@@ -1000,7 +1068,18 @@ class CarrinhoView(ctk.CTkFrame):
             fg_color="#1f6aa5", hover_color="#104a85",
             command=self._imprimir_recibo,
         )
+
+        # Reativa o painel temporariamente para o usuário poder imprimir
+        # Após 10 segundos, trava novamente se o carrinho ainda estiver vazio
+        self._toggle_resumo(True)
+        self.after(15_000, self._bloquear_se_vazio)
+
         messagebox.showinfo("Venda Finalizada", f"Venda #{resultado} registrada com sucesso!")
+
+    def _bloquear_se_vazio(self):
+        """Trava o Resumo do Pedido se o carrinho ainda estiver vazio (chamado 10s após venda)."""
+        if not self._carrinho:
+            self._toggle_resumo(False)
 
     def _imprimir_recibo(self):
         """Stub: impress\u00e3o de recibo (implementar nas pr\u00f3ximas etapas)."""
