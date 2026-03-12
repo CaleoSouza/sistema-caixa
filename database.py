@@ -153,6 +153,23 @@ def criar_tabelas():
     """)
 
     # ------------------------------------------------------------------
+    # Tabela: despesas
+    # Controle de despesas da empresa (contas, compras, pagamentos, etc.)
+    # ------------------------------------------------------------------
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS despesas (
+            id               INTEGER PRIMARY KEY AUTOINCREMENT,
+            descricao        TEXT    NOT NULL,
+            data             TEXT    NOT NULL,
+            responsavel      TEXT,
+            valor            REAL    NOT NULL DEFAULT 0.0,
+            forma_pagamento  TEXT             DEFAULT 'dinheiro',
+            status           TEXT             DEFAULT 'em_aberto',
+            criado_em        TEXT             DEFAULT (datetime('now','localtime'))
+        )
+    """)
+
+    # ------------------------------------------------------------------
     # Migração: adiciona colunas novas em bancos já existentes
     # Preserva todos os dados cadastrados anteriormente
     # ------------------------------------------------------------------

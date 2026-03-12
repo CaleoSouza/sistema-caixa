@@ -29,7 +29,7 @@ class PagamentoForm(ctk.CTkToplevel):
 
         titulo = "Editar Pagamento" if pag_id else "Registrar Pagamento"
         self.title(titulo)
-        self.geometry("380x240")
+        self.geometry("380x300")
         self.resizable(False, False)
         self.grab_set()
 

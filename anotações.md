@@ -202,10 +202,35 @@ Repositório: https://github.com/CaleoSouza/sistema-caixa
       - Removido `fa.grid_columnconfigure((0,1), weight=1)` que os forçava a esticar
 - [x] Fix cantos arredondados do painel direito: CTkScrollableFrame com `corner_radius=12` e `padx=2, pady=(2,0)`
 
-### Etapa 5 - Relatórios
+### Etapa 5 - Despesas (concluída em 12/03/2026)
+- [x] `database.py` — tabela `despesas` adicionada (id, descricao, data, responsavel, valor, forma_pagamento, status, criado_em)
+- [x] `models/despesa_model.py` — CRUD completo:
+      - listar_despesas(busca, mes, ano, status) com filtros combinados
+      - buscar_por_id(), inserir_despesa(), atualizar_despesa(), excluir_despesa()
+      - resumo_por_mes() → totais agrupados por status (pago, agendado, em_aberto)
+- [x] `controllers/despesa_controller.py` — lógica de negócio:
+      - obter_lista(), obter_resumo(), salvar(), remover(), obter_por_id()
+      - STATUS_LABELS: pago | agendado | em_aberto
+      - FORMAS_PAGAMENTO: Dinheiro, PIX, Boleto, Cartão, Transferência, Anotado
+- [x] `views/despesa_form.py` — popup modal CTkToplevel para nova/editar despesa:
+      - Campos: Descrição, Data (padrão hoje), Responsável, Valor, Forma de Pagamento, Status
+      - Modo edição: pré-preenche todos os campos
+      - geometry("420x520") para exibir todos os campos corretamente
+- [x] `views/despesas_view.py` — tela completa:
+      - Painel esquerdo: tabela com colunas Descrição, Data, Responsável, Valor, Pagamento, Status (colorido), Ações (✏️ 🗑️)
+      - Filtros: busca por texto + dropdown Mês + dropdown Status
+      - Botão “+ Adicionar Nova Despesa” e “🖨️ Imprimir Despesas” (stub)
+      - Painel direito: 4 cards com seletor de mês individual cada:
+        • Total de Despesas (Mês) — cor preta
+        • Total de Despesas (Agendado) — cor laranja
+        • Total de Despesas (Em Aberto) — cor vermelha
+        • Total de Despesas (Pago) — cor verde
+- [x] `main.py` — botão Despesas adicionado na sidebar entre Clientes e Relatórios
+
+### Etapa 6 - Relatórios
 - [ ] `views/relatorios_view.py` — relatórios de vendas, produtos e clientes
 
-### Etapa 6 - Configurações
+### Etapa 7 - Configurações
 - [ ] `views/configuracoes_view.py` — nome da empresa, logo, backup do banco de dados
 
 ### Final
@@ -244,5 +269,43 @@ Repositório: https://github.com/CaleoSouza/sistema-caixa
 - Comando `python` não reconhecido no bash do Windows — usar `py` (Windows Launcher)
 - Bootstrap Icons SVG: biblioteca cairosvg requer libcairo-2.dll no Windows (não disponível) — descartado, ficamos com emojis Unicode
 - Cards do Dashboard cresciam em Full HD — corrigido removendo `weight=1` da linha dos cards e usando `sticky="ew"` no lugar de `"nsew"`
+- Janela "Registrar Pagamento" cortava botões — corrigido: `geometry("380x300")`
+- Ícones de emoji em botões não apareciam bem — corrigido com `text_color="#000000"` explícito
+
+--------------------
+
+## 📐 Padrões de UI estabelecidos (referência para novas telas)
+
+### Botões de ações em tabelas (✏️ 🗑️ 🖨️)
+- Sempre `text_color="#000000"` para emojis ficarem visíveis
+- Sem `sticky="ew"` — tamanho fixo, não esticar
+- Tamanhos: `width=34, height=26` (tabelas grandes) / `width=26, height=24` (tabelas compactas)
+- `fg_color="transparent"` com hover colorido:
+  - Editar  ✏️ → `hover_color="#e0e0e0"`
+  - Excluir 🗑️ → `hover_color="#fde8e8"`
+  - Imprimir 🖨️ → `hover_color="#e3f2fd"`
+
+### Tabelas responsivas
+- Colunas de dados: `grid_columnconfigure(i, weight=peso)` — sem `width=` nos CTkLabel
+- Labels com `sticky="ew"` para preencherem a célula proporcionalmente
+- Coluna "Ações": `weight=0, minsize=80` — largura fixa, não cresce
+- Cabeçalho fixo e scroll_frame devem ter o mesmo padrão de colunas
+
+### CTkScrollableFrame dentro de card arredondado
+- Usar `corner_radius=12` + `padx=2, pady=(2,0)` para preservar os cantos do card pai
+
+### Cores e tema
+- Tema: claro (`ctk.set_appearance_mode("light")`)
+- Azul primário: `#1f6aa5` | hover: `#104a85`
+- Azul secundário (inativo): `#3a9adf` | hover: `#2a7abf`
+- Verde confirmação: `#2e7d32` | hover: `#1b5e20`
+- Cinza neutro: `#888888` | hover: `#666666`
+- Vermelho destrutivo: `#e53935` | hover: `#c62828`
+
+### Layout de tela principal
+- Split 50/50 com `grid_columnconfigure(0|1, weight=1, uniform="painel")`
+- Título da tela: `CTkFont(size=26, weight="bold")`, `text_color="#1f6aa5"`
+- Cards com `fg_color="white", corner_radius=12`
+- Fundo geral: `fg_color="#e8e8e8"`
 
 --------------------

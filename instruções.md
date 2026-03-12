@@ -42,8 +42,10 @@ Sistema Caixa/
 │   ├── crediario_item_form.py   # ✅ Popup CTkToplevel para adicionar/editar item do crediário
 │   ├── pagamento_form.py        # ✅ Popup CTkToplevel para registrar/editar pagamento
 │   ├── carrinho_view.py         # ✅ Carrinho completo — Fase 1+2 (11/03/2026)
-│   ├── relatorios_view.py       # (Etapa 5 - pendente)
-│   └── configuracoes_view.py    # (Etapa 6 - pendente)
+   ├── despesa_form.py          # ✅ Popup modal para adicionar/editar despesa (Etapa 5)
+   ├── despesas_view.py         # ✅ Tela completa de Despesas (Etapa 5)
+│   ├── relatorios_view.py       # (Etapa 6 - pendente)
+│   └── configuracoes_view.py    # (Etapa 7 - pendente)
 │
 ├── controllers/                 # Lógica de negócio
 │   ├── produto_controller.py    # CRUD produtos, EAN-13, status estoque, imagens
@@ -98,10 +100,16 @@ Etapa 4 - Carrinho ✅ (concluída em 11/03/2026)
   - REGRA: crediario_model.inserir_item() DEVE ser chamado em conexão separada (após commit+close do estoque)
   - Taxas cartão são internas (referência do vendedor); NÃO afetam o total_final do cliente
   
-Etapa 5 - Relatórios
+Etapa 5 - Despesas ✅ (concluída em 12/03/2026)
+  - Registrar despesas da empresa (aluguel, fornecedores, contas, etc.)
+  - Categorias de despesas
+  - Listagem com filtros por data e categoria
+  - Relatório de despesas
+
+Etapa 6 - Relatórios
   - Relatórios de vendas, produtos e clientes
 
-Etapa 6 - Configurações
+Etapa 7 - Configurações
   - Backup do banco de dados
   - Preferências do sistema
   - Informações da empresa (nome, endereço, telefone, etc.)

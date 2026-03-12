@@ -439,19 +439,19 @@ class ClienteDetalhe(ctk.CTkFrame):
             ctk.CTkButton(
                 fa, text="✏️", width=26, height=24,
                 fg_color="transparent", hover_color="#e0e0e0",
-                font=ctk.CTkFont(size=12),
+                font=ctk.CTkFont(size=12), text_color="#000000",
                 command=lambda iid=item["id"]: self._editar_item(iid),
             ).grid(row=0, column=0)
             ctk.CTkButton(
                 fa, text="🗑️", width=26, height=24,
                 fg_color="transparent", hover_color="#fde8e8",
-                font=ctk.CTkFont(size=12),
+                font=ctk.CTkFont(size=12), text_color="#000000",
                 command=lambda iid=item["id"]: self._excluir_item(iid),
             ).grid(row=0, column=1)
             ctk.CTkButton(
                 fa, text="🖨️", width=26, height=24,
                 fg_color="transparent", hover_color="#e3f2fd",
-                font=ctk.CTkFont(size=12),
+                font=ctk.CTkFont(size=12), text_color="#000000",
                 command=lambda iid=item["id"]: self._imprimir_item(iid),
             ).grid(row=0, column=2)
 
@@ -485,19 +485,19 @@ class ClienteDetalhe(ctk.CTkFrame):
                 ctk.CTkButton(
                     fa, text="✏️", width=26, height=24,
                     fg_color="transparent", hover_color="#e0e0e0",
-                    font=ctk.CTkFont(size=12),
+                    font=ctk.CTkFont(size=12), text_color="#000000",
                     command=lambda pid=pag["id"]: self._editar_pagamento(pid),
                 ).grid(row=0, column=0)
                 ctk.CTkButton(
                     fa, text="🗑️", width=26, height=24,
                     fg_color="transparent", hover_color="#fde8e8",
-                    font=ctk.CTkFont(size=12),
+                    font=ctk.CTkFont(size=12), text_color="#000000",
                     command=lambda pid=pag["id"]: self._excluir_pagamento(pid),
                 ).grid(row=0, column=1)
                 ctk.CTkButton(
                     fa, text="🖨️", width=26, height=24,
                     fg_color="transparent", hover_color="#e3f2fd",
-                    font=ctk.CTkFont(size=12),
+                    font=ctk.CTkFont(size=12), text_color="#000000",
                     command=lambda pid=pag["id"]: self._imprimir_pagamento(pid),
                 ).grid(row=0, column=2)
 

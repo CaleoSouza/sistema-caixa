@@ -10,6 +10,7 @@ from views.home_view import HomeView
 from views.produtos_view import ProdutosView
 from views.clientes_view import ClientesView
 from views.carrinho_view import CarrinhoView
+from views.despesas_view import DespesasView
 
 
 # ------------------------------------------------------------------
@@ -188,7 +189,7 @@ class App(ctk.CTk):
         self.sidebar = ctk.CTkFrame(self, width=215, corner_radius=0, fg_color="#d4d4d4")
         self.sidebar.grid(row=0, column=0, sticky="nsew")
         self.sidebar.grid_propagate(False)
-        self.sidebar.grid_rowconfigure(7, weight=1)  # empurra botões para cima
+        self.sidebar.grid_rowconfigure(8, weight=1)  # empurra botões para cima
 
         # --- Título ---
         # "Menu" clicável → volta para o Home
@@ -217,8 +218,9 @@ class App(ctk.CTk):
             ("Carrinho",      "🛒", CarrinhoView),   # ✅ Etapa 4
             ("Produtos",      "📦", ProdutosView),   # ✅ Etapa 2
             ("Clientes",      "👤", ClientesView),   # ✅ Etapa 3
-            ("Relatórios",    "📊", None),           # RelatoriosView (Etapa 5)
-            ("Configurações", "⚙️", None),           # ConfiguracoesView (Etapa 6)
+            ("Despesas",      "💸", DespesasView),   # ✅ Etapa 5
+            ("Relatórios",    "📊", None),           # RelatoriosView (Etapa 6)
+            ("Configurações", "⚙️", None),           # ConfiguracoesView (Etapa 7)
         ]
 
         self.btns_nav = {}
