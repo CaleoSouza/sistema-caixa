@@ -8,8 +8,13 @@ import logging
 import customtkinter as ctk
 from tkinter import messagebox
 
-from controllers.despesa_controller import obter_lista, obter_resumo, remover, STATUS_LABELS
+from controllers.despesa_controller import (
+    obter_lista, obter_resumo, remover, STATUS_LABELS,
+    obter_lista_auto, remover_auto, obter_auto_por_id,
+    gerar_despesas_mes_atual,
+)
 from views.despesa_form import DespesaForm
+from views.despesa_auto_form import DespesaAutoForm
 from utils import formatar_moeda
 
 log = logging.getLogger(__name__)
@@ -65,6 +70,10 @@ class DespesasView(ctk.CTkFrame):
         self.grid_rowconfigure(1, weight=1)
 
         log.info("DespesasView carregada.")
+        # Gera despesas automáticas do mês atual ao abrir a tela
+        criadas = gerar_despesas_mes_atual()
+        if criadas:
+            log.info("Despesas automáticas geradas: %d", criadas)
         self._construir_ui()
 
     # ------------------------------------------------------------------
@@ -232,6 +241,9 @@ class DespesasView(ctk.CTkFrame):
             opt.grid(row=2, column=0, padx=14, pady=(0, 12), sticky="w")
             self._opt_mes_cards[chave] = opt
 
+        # Card de despesas automáticas (fixas)
+        self._criar_card_automaticas(painel, linha=len(definicoes))
+
         self._atualizar_todos_cards()
 
     # ------------------------------------------------------------------
@@ -319,8 +331,36 @@ class DespesasView(ctk.CTkFrame):
         else:
             messagebox.showerror("Erro", msg)
 
+    # Ações CRUD - Automáticas
+    def _nova_auto(self):
+        DespesaAutoForm(self, None, self._apos_salvar_auto)
+
+    def _editar_auto(self, auto_id: int):
+        d = obter_auto_por_id(auto_id)
+        if d:
+            DespesaAutoForm(self, d, self._apos_salvar_auto)
+
+    def _excluir_auto(self, auto_id: int):
+        if not messagebox.askyesno("Excluir Despesa Automática",
+                                   "Deseja remover esta despesa automática permanentemente?\n"
+                                   "(As despesas já geradas não serão removidas.)"):
+            return
+        ok, msg = remover_auto(auto_id)
+        if ok:
+            self._carregar_lista_auto()
+        else:
+            messagebox.showerror("Erro", msg)
+
     def _apos_salvar(self):
         """Recarrega tabela e cards após qualquer alteração."""
+        self._carregar_tabela()
+        self._atualizar_todos_cards()
+
+    def _apos_salvar_auto(self):
+        """Recarrega lista automática + tabela (novas despesas podem ter sido geradas)."""
+        self._carregar_lista_auto()
+        # Regenera despesas do mês atual após salvar nova auto
+        gerar_despesas_mes_atual()
         self._carregar_tabela()
         self._atualizar_todos_cards()
 

@@ -165,6 +165,23 @@ def criar_tabelas():
             valor            REAL    NOT NULL DEFAULT 0.0,
             forma_pagamento  TEXT             DEFAULT 'dinheiro',
             status           TEXT             DEFAULT 'em_aberto',
+            auto_origem_id   INTEGER          DEFAULT NULL,
+            criado_em        TEXT             DEFAULT (datetime('now','localtime'))
+        )
+    """)
+
+    # ------------------------------------------------------------------
+    # Tabela: despesas_automaticas
+    # Despesas fixas que se repetem todo mês numa data específica
+    # ------------------------------------------------------------------
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS despesas_automaticas (
+            id               INTEGER PRIMARY KEY AUTOINCREMENT,
+            descricao        TEXT    NOT NULL,
+            dia_mes          INTEGER NOT NULL DEFAULT 1,
+            responsavel      TEXT,
+            valor            REAL    NOT NULL DEFAULT 0.0,
+            forma_pagamento  TEXT             DEFAULT 'Dinheiro',
             criado_em        TEXT             DEFAULT (datetime('now','localtime'))
         )
     """)
@@ -221,6 +238,13 @@ def _migrar_tabelas(conn):
     for nome, tipo in [("taxa_cartao", "REAL DEFAULT 0.0"), ("parcelas", "INTEGER DEFAULT 1")]:
         if nome not in colunas_vendas:
             conn.execute(f"ALTER TABLE vendas ADD COLUMN {nome} {tipo}")
+
+    # Migrações da tabela despesas
+    colunas_despesas = [
+        row[1] for row in conn.execute("PRAGMA table_info(despesas)")
+    ]
+    if "auto_origem_id" not in colunas_despesas:
+        conn.execute("ALTER TABLE despesas ADD COLUMN auto_origem_id INTEGER DEFAULT NULL")
 
 
 # Permite inicializar o banco executando este arquivo diretamente
