@@ -27,10 +27,10 @@ _MESES = [
 
 # Colunas da tabela: (rótulo, peso)
 COLUNAS = [
-    ("Descrição",    5),
+    ("Descrição",    4),
     ("Data",         2),
-    ("Responsável",  3),
-    ("Valor",        2),
+    ("Responsável",  2),
+    ("Valor",        1),
     ("Pagamento",    2),
     ("Status",       2),
     ("Ações",        0),   # largura fixa via minsize
@@ -168,27 +168,13 @@ class DespesasView(ctk.CTkFrame):
         self.opt_status.set("Status")
         self.opt_status.grid(row=1, column=3)
 
-        # ── Cabeçalho fixo da tabela ──────────────────────────────
-        cab_tab = ctk.CTkFrame(card, fg_color="#f0f0f0", corner_radius=0, height=28)
-        cab_tab.grid(row=1, column=0, padx=8, sticky="ew")
-        cab_tab.grid_propagate(False)
-        for i, (rot, peso) in enumerate(COLUNAS):
-            if rot == "Ações":
-                cab_tab.grid_columnconfigure(i, weight=0, minsize=72)
-            else:
-                cab_tab.grid_columnconfigure(i, weight=peso)
-            ctk.CTkLabel(
-                cab_tab, text=rot,
-                font=ctk.CTkFont(size=11, weight="bold"),
-                text_color="#555555", anchor="w",
-            ).grid(row=0, column=i, padx=(6, 0), pady=2, sticky="ew")
-
-        # ── Área de rolagem ───────────────────────────────────────
+        # ── Área de rolagem (cabeçalho na linha 0, dados a partir da linha 1) ──
         self.scroll = ctk.CTkScrollableFrame(card, fg_color="white", corner_radius=0)
-        self.scroll.grid(row=2, column=0, padx=8, pady=(0, 8), sticky="nsew")
+        self.scroll.grid(row=1, column=0, padx=8, pady=(0, 8), sticky="nsew")
+        card.grid_rowconfigure(1, weight=1)
         for i, (_, peso) in enumerate(COLUNAS):
             if COLUNAS[i][0] == "Ações":
-                self.scroll.grid_columnconfigure(i, weight=0, minsize=72)
+                self.scroll.grid_columnconfigure(i, weight=0, minsize=56)
             else:
                 self.scroll.grid_columnconfigure(i, weight=peso)
 
@@ -348,6 +334,15 @@ class DespesasView(ctk.CTkFrame):
         for w in self.scroll.winfo_children():
             w.destroy()
 
+        # ── Cabeçalho dentro do scroll (linha 0) ─────────────────
+        for i, (rot, _) in enumerate(COLUNAS):
+            ctk.CTkLabel(
+                self.scroll, text=rot,
+                font=ctk.CTkFont(size=11, weight="bold"),
+                text_color="#555555", anchor="w",
+                fg_color="#f0f0f0",
+            ).grid(row=0, column=i, padx=(6, 0), pady=(2, 4), sticky="ew")
+
         busca = self.entry_busca.get().strip()
 
         # Converte label de status para chave interna
@@ -365,10 +360,10 @@ class DespesasView(ctk.CTkFrame):
             ctk.CTkLabel(
                 self.scroll, text="Nenhuma despesa encontrada.",
                 font=ctk.CTkFont(size=12), text_color="#888888",
-            ).grid(row=0, column=0, columnspan=len(COLUNAS), pady=20)
+            ).grid(row=1, column=0, columnspan=len(COLUNAS), pady=20)
             return
 
-        for linha, d in enumerate(despesas):
+        for linha, d in enumerate(despesas, start=1):
             cor_status = _STATUS_COR.get(d["status"], "#1a1a1a")
             dados_cols = [
                 (d["descricao"],                    "#1a1a1a"),
@@ -388,19 +383,19 @@ class DespesasView(ctk.CTkFrame):
 
             # Botões Editar / Excluir
             fa = ctk.CTkFrame(self.scroll, fg_color="transparent")
-            fa.grid(row=linha, column=6, padx=(4, 6), pady=3)
+            fa.grid(row=linha, column=6, padx=(2, 4), pady=3)
 
             ctk.CTkButton(
-                fa, text="✏️", width=30, height=26,
+                fa, text="✏️", width=24, height=22,
                 fg_color="#dbeafe", hover_color="#93c5fd",
-                text_color="#000000", font=ctk.CTkFont(size=13),
+                text_color="#000000", font=ctk.CTkFont(size=11),
                 command=lambda did=d["id"]: self._editar(did),
-            ).grid(row=0, column=0, padx=(0, 2))
+            ).grid(row=0, column=0, padx=(0, 1))
 
             ctk.CTkButton(
-                fa, text="🗑️", width=30, height=26,
+                fa, text="🗑️", width=24, height=22,
                 fg_color="#fee2e2", hover_color="#fca5a5",
-                text_color="#000000", font=ctk.CTkFont(size=13),
+                text_color="#000000", font=ctk.CTkFont(size=11),
                 command=lambda did=d["id"]: self._excluir(did),
             ).grid(row=0, column=1)
 

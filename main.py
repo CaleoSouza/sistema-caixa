@@ -202,7 +202,7 @@ class App(ctk.CTk):
             cursor="hand2",
         )
         lbl_menu.grid(row=0, column=0, padx=25, pady=(35, 0), sticky="w")
-        lbl_menu.bind("<Button-1>", lambda e: self.mostrar_tela(HomeView))
+        lbl_menu.bind("<Button-1>", lambda e: (self._set_btn_ativo(None), self.mostrar_tela(HomeView)))
         lbl_menu.bind("<Enter>", lambda e: lbl_menu.configure(text_color="#1f6aa5"))
         lbl_menu.bind("<Leave>", lambda e: lbl_menu.configure(text_color="#1a1a1a"))
 
@@ -239,11 +239,30 @@ class App(ctk.CTk):
             self.btns_nav[nome] = btn
 
     def _navegar(self, view_cls, nome_btn):
-        """Trata o clique nos botões da sidebar."""
+        """Trata o clique nos botões da sidebar e atualiza o destaque do botão ativo."""
         if view_cls is None:
             # View ainda não implementada
             return
+        self._set_btn_ativo(nome_btn)
         self.mostrar_tela(view_cls)
+
+    def _set_btn_ativo(self, nome_btn: str | None):
+        """
+        Atualiza o destaque visual dos botões da sidebar.
+        - nome_btn: nome do botão a destacar, ou None para limpar todos.
+        """
+        COR_ATIVO  = ("#145a8a", "#0d4272")   # azul escuro — botão selecionado
+        COR_NORMAL = ("#3B8ED0", "#1F6AA5")   # azul padrão do tema
+
+        # Remove destaque do botão anterior
+        if self.btn_ativo and self.btn_ativo in self.btns_nav:
+            self.btns_nav[self.btn_ativo].configure(fg_color=COR_NORMAL)
+
+        self.btn_ativo = nome_btn
+
+        # Aplica destaque no novo botão ativo
+        if nome_btn and nome_btn in self.btns_nav:
+            self.btns_nav[nome_btn].configure(fg_color=COR_ATIVO)
 
     # ------------------------------------------------------------------
     # Troca de telas

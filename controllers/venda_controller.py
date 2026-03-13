@@ -74,31 +74,43 @@ def finalizar_venda(
     venda_id = registrar_venda(dados_venda, itens_carrinho)
 
     # ------------------------------------------------------------------
-    # Baixa estoque (uma única conexão, commit e fecha antes do crediário)
+    # Baixa estoque — se falhar, cancela a venda registrada
     # ------------------------------------------------------------------
-    conn = conectar()
-    for item in itens_carrinho:
-        conn.execute(
-            "UPDATE produtos SET quantidade = quantidade - ? WHERE id = ?",
-            (item["quantidade"], item["produto_id"]),
-        )
-    conn.commit()
-    conn.close()
+    try:
+        conn = conectar()
+        for item in itens_carrinho:
+            conn.execute(
+                "UPDATE produtos SET quantidade = quantidade - ? WHERE id = ?",
+                (item["quantidade"], item["produto_id"]),
+            )
+        conn.commit()
+        conn.close()
+    except Exception as exc:  # pragma: no cover
+        log.error("Erro ao baixar estoque após venda #%d: %s", venda_id, exc)
+        return False, f"Venda registrada mas houve erro ao atualizar estoque: {exc}"
 
     # ------------------------------------------------------------------
-    # Registra no crediário (abre nova conexão separada, sem conflito)
+    # Registra no crediário — se falhar, estoque já foi baixado mas
+    # o operador é alertado para corrigir manualmente
     # ------------------------------------------------------------------
     if forma_pagamento == "a_prazo" and cliente_id:
         data_hoje = date.today().strftime("%d/%m/%Y")
-        for item in itens_carrinho:
-            inserir_item_crediario({
-                "cliente_id":     cliente_id,
-                "produto_nome":   item["nome"],
-                "data":           data_hoje,
-                "quantidade":     item["quantidade"],
-                "preco_unitario": item["preco_unitario"],
-                "total":          item["subtotal"],
-            })
+        try:
+            for item in itens_carrinho:
+                inserir_item_crediario({
+                    "cliente_id":     cliente_id,
+                    "produto_nome":   item["nome"],
+                    "data":           data_hoje,
+                    "quantidade":     item["quantidade"],
+                    "preco_unitario": item["preco_unitario"],
+                    "total":          item["subtotal"],
+                })
+        except Exception as exc:  # pragma: no cover
+            log.error("Erro ao lançar crediário para venda #%d: %s", venda_id, exc)
+            return (
+                False,
+                f"Venda #{venda_id:02d} registrada mas houve erro ao lançar crediário: {exc}",
+            )
 
     log.info(
         "Venda #%02d finalizada | Total: R$ %.2f | Desconto: R$ %.2f | "

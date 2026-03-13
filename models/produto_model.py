@@ -199,7 +199,7 @@ def inserir_produto(dados: dict) -> int:
 def atualizar_produto(produto_id: int, dados: dict) -> bool:
     """Atualiza os dados de um produto existente."""
     conn = conectar()
-    conn.execute(
+    cursor = conn.execute(
         """UPDATE produtos SET
                nome = ?, descricao = ?, categoria = ?, fornecedor = ?,
                preco = ?, preco_custo = ?, quantidade = ?, estoque_minimo = ?,
@@ -222,7 +222,7 @@ def atualizar_produto(produto_id: int, dados: dict) -> bool:
         ),
     )
     conn.commit()
-    alterado = conn.total_changes > 0
+    alterado = cursor.rowcount > 0
     conn.close()
     return alterado
 
@@ -230,11 +230,11 @@ def atualizar_produto(produto_id: int, dados: dict) -> bool:
 def excluir_produto(produto_id: int) -> bool:
     """Exclusão lógica: marca o produto como inativo (ativo = 0)."""
     conn = conectar()
-    conn.execute(
+    cursor = conn.execute(
         "UPDATE produtos SET ativo = 0 WHERE id = ?", (produto_id,)
     )
     conn.commit()
-    alterado = conn.total_changes > 0
+    alterado = cursor.rowcount > 0
     conn.close()
     return alterado
 
@@ -242,13 +242,13 @@ def excluir_produto(produto_id: int) -> bool:
 def atualizar_estoque(produto_id: int, quantidade: int) -> bool:
     """Atualiza apenas o estoque de um produto (usado pelo carrinho)."""
     conn = conectar()
-    conn.execute(
+    cursor = conn.execute(
         """UPDATE produtos SET quantidade = ?,
                atualizado_em = datetime('now','localtime')
            WHERE id = ? AND ativo = 1""",
         (quantidade, produto_id),
     )
     conn.commit()
-    alterado = conn.total_changes > 0
+    alterado = cursor.rowcount > 0
     conn.close()
     return alterado

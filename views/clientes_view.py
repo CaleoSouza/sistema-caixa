@@ -36,10 +36,6 @@ COLUNAS_TABELA = [
 ]
 
 
-def _truncar(texto: str, max_chars: int | None) -> str:
-    """Mantido por compatibilidade; com colunas responsivas o truncamento não é mais necessário."""
-    return texto
-
 
 class ClientesView(ctk.CTkFrame):
     def __init__(self, parent, controller, filtro_inicial: str = None):

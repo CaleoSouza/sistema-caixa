@@ -80,8 +80,8 @@ def salvar(dados: dict, cliente_id: int = None) -> tuple[bool, str]:
         ok = atualizar_cliente(cliente_id, dados)
         return ok, "Cliente atualizado com sucesso!" if ok else "Erro ao atualizar cliente."
     else:
-        inserir_cliente(dados)
-        log.info(f"Cliente '{dados.get('nome')}' cadastrado.")
+        novo_id = inserir_cliente(dados)
+        log.info(f"Cliente '{dados.get('nome')}' cadastrado com id={novo_id}.")
         return True, "Cliente cadastrado com sucesso!"
 
 

@@ -13,6 +13,7 @@ Categorias dos menus:
 - Produtos (Adicionar, remover, editar produtos, etc.)
 - Clientes (Adicionar, remover, editar clientes, etc.)
 - Carrinho (Registrar vendas, consultar vendas, etc.)
+- Despesas (Registrar despesas, categorias, etc.)
 - Relatórios (Gerar relatórios de vendas, produtos, clientes, etc.)
 - Configurações (Configurações do sistema, como backup de dados, etc.)
 
