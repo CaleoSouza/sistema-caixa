@@ -42,21 +42,23 @@ Sistema Caixa/
 │   ├── crediario_item_form.py   # ✅ Popup CTkToplevel para adicionar/editar item do crediário
 │   ├── pagamento_form.py        # ✅ Popup CTkToplevel para registrar/editar pagamento
 │   ├── carrinho_view.py         # ✅ Carrinho completo — Fase 1+2 (11/03/2026)
-   ├── despesa_form.py          # ✅ Popup modal para adicionar/editar despesa (Etapa 5)
-   ├── despesas_view.py         # ✅ Tela completa de Despesas (Etapa 5)
-│   ├── relatorios_view.py       # (Etapa 6 - pendente)
+│   ├── despesa_form.py          # ✅ Popup modal para adicionar/editar despesa (Etapa 5)
+│   ├── despesas_view.py         # ✅ Tela completa de Despesas (Etapa 5)
+   ├── relatorios_view.py       # ✅ Fase 1 completa — cards Fechamento do Dia e do Mês (Etapa 6)
 │   └── configuracoes_view.py    # (Etapa 7 - pendente)
 │
 ├── controllers/                 # Lógica de negócio
 │   ├── produto_controller.py    # CRUD produtos, EAN-13, status estoque, imagens
 │   ├── cliente_controller.py    # ✅ CRUD clientes, status crediário, imagens (Etapa 3)
-│   └── venda_controller.py      # ✅ finalizar_venda + baixa estoque + crediário (Etapa 4)
+│   ├── venda_controller.py      # ✅ finalizar_venda + baixa estoque + crediário (Etapa 4)
+│   └── despesa_controller.py    # ✅ obter_lista, salvar, remover, obter_resumo (Etapa 5)
 │
 ├── models/                      # Consultas ao banco de dados
 │   ├── produto_model.py         # SQL produtos: listar, filtros, resumo, estoque baixo, próx. vencer
 │   ├── cliente_model.py         # ✅ SQL clientes: listar, filtros, resumo, em atraso (Etapa 3)
 │   ├── crediario_model.py       # ✅ CRUD crediario_itens + historico_pagamentos + calcular_saldo
-│   └── venda_model.py           # ✅ CRUD vendas + itens_venda + totais do dia (Etapa 4)
+│   ├── venda_model.py           # ✅ CRUD vendas + itens_venda + totais do dia (Etapa 4)
+│   └── despesa_model.py         # ✅ CRUD despesas + resumo_por_mes (Etapa 5)
 │
 ├── imagens/                     # Imagens do sistema
 │   ├── produtos/                # Fotos de upload dos produtos
@@ -106,8 +108,9 @@ Etapa 5 - Despesas ✅ (concluída em 12/03/2026)
   - Listagem com filtros por data e categoria
   - Relatório de despesas
 
-Etapa 6 - Relatórios
-  - Relatórios de vendas, produtos e clientes
+Etapa 6 - Relatórios ✅ Fase 1 (concluída em 12/03/2026)
+  - Fase 1: cards Fechamento do Dia (tkcalendar DateEntry) e Fechamento do Mês (CTkOptionMenu + CVtEntry ano) com Resumo Rápido
+  - Fase 2 (pendente): tabelas detalhadas de vendas por dia e por mês
 
 Etapa 7 - Configurações
   - Backup do banco de dados

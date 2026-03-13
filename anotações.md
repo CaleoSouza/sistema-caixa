@@ -294,6 +294,36 @@ Repositório: https://github.com/CaleoSouza/sistema-caixa
 ### CTkScrollableFrame dentro de card arredondado
 - Usar `corner_radius=12` + `padx=2, pady=(2,0)` para preservar os cantos do card pai
 
+### Etapa 5 - Despesas (concluída em 12/03/2026)
+- [x] `database.py` — tabela `despesas` adicionada: id, descricao, data (DD/MM/AAAA), responsavel, valor, forma_pagamento, status, criado_em
+- [x] `models/despesa_model.py` — CRUD completo:
+      - listar_despesas(busca, mes, ano, status): filtra via substr(data, 4, 2) e substr(data, 7, 4)
+      - buscar_por_id(), inserir_despesa(), atualizar_despesa(), excluir_despesa()
+      - resumo_por_mes(mes, ano) → {total_mes, total_agendado, total_em_aberto, total_pago}
+- [x] `controllers/despesa_controller.py`:
+      - obter_lista(), obter_resumo(), salvar(), remover(), obter_por_id()
+      - STATUS_LABELS = {"pago": "Pago", "agendado": "Agendado", "em_aberto": "Em Aberto"}
+      - FORMAS_PAGAMENTO = ["Dinheiro", "PIX", "Boleto", "Cartão", "Transferência", "Anotado"]
+- [x] `views/despesa_form.py` — CTkToplevel modal 420×520:
+      - Campos: Descrição, Data (padrão hoje), Responsável, Valor, Forma de Pagamento, Status
+      - Modo edição: pré-preenche com dados da despesa selecionada
+- [x] `views/despesas_view.py` — tela completa:
+      - Painel esquerdo: tabela com colunas (Descrição, Data, Responsável, Valor, Pagamento, Status, Ações)
+      - Filtros: busca em tempo real + seletor de mês
+      - Status colorido: pago=#2e7d32 | agendado=#d97706 | em_aberto=#e53935
+      - Painel direito: 4 cards (Total do Mês, Agendado, Em Aberto, Pago) com seletores individuais de mês
+- [x] `main.py` — DespesasView importada e botão "💸 Despesas" adicionado à sidebar
+
+### Etapa 6 - Relatórios / Fase 1 (concluída em 12/03/2026)
+- [x] `views/relatorios_view.py` — tela criada com 2 cards:
+      - Card "Fechamento do Dia": tkcalendar DateEntry (locale="pt_BR", date_pattern="dd/MM/yyyy") + botão "🔍 Ver" + Resumo Rápido (qtd vendas + valor total do dia)
+      - Card "Fechamento do Mês": CTkOptionMenu meses em PT + CTkEntry ano + botão "🔍 Ver" + Resumo Rápido do mês
+      - _ver_dia() e _ver_mes() com placeholder "Em breve" — tabela detalhada será implementada na Fase 2
+      - Funções internas: _resumo_dia(data_iso) e _resumo_mes(mes, ano) consultam a tabela vendas diretamente
+      - tkcalendar 1.6.1 já instalado; fallback para CTkEntry se import falhar
+- [x] `main.py` — RelatoriosView importada e botão "📊 Relatórios" adicionado à sidebar
+- [ ] Fase 2: tabelas detalhadas de vendas por dia e por mês (implementar em sessão futura)
+
 ### Cores e tema
 - Tema: claro (`ctk.set_appearance_mode("light")`)
 - Azul primário: `#1f6aa5` | hover: `#104a85`

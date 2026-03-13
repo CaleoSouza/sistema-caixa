@@ -11,6 +11,7 @@ from views.produtos_view import ProdutosView
 from views.clientes_view import ClientesView
 from views.carrinho_view import CarrinhoView
 from views.despesas_view import DespesasView
+from views.relatorios_view import RelatoriosView
 
 
 # ------------------------------------------------------------------
@@ -219,7 +220,7 @@ class App(ctk.CTk):
             ("Produtos",      "📦", ProdutosView),   # ✅ Etapa 2
             ("Clientes",      "👤", ClientesView),   # ✅ Etapa 3
             ("Despesas",      "💸", DespesasView),   # ✅ Etapa 5
-            ("Relatórios",    "📊", None),           # RelatoriosView (Etapa 6)
+            ("Relatórios",    "📊", RelatoriosView), # ✅ Etapa 6
             ("Configurações", "⚙️", None),           # ConfiguracoesView (Etapa 7)
         ]
 
