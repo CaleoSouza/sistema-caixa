@@ -7,6 +7,7 @@ import os
 import customtkinter as ctk
 from PIL import Image
 from database import conectar
+from models.cliente_model import resumo_clientes
 
 # Tamanho fixo do logo na interface
 LOGO_SIZE = 110
@@ -220,11 +221,10 @@ class HomeView(ctk.CTkFrame):
     def _obter_resumo(self):
         """Retorna (clientes_em_atraso, produtos_baixo_estoque, vendas_hoje)."""
         try:
-            conn = conectar()
+            # Clientes em atraso: usa resumo_clientes() que aplica a regra dos 30 dias
+            clientes_atraso = resumo_clientes().get("em_atraso", 0)
 
-            clientes_atraso = conn.execute(
-                "SELECT COUNT(*) FROM clientes WHERE tem_crediario = 1 AND debito_atual > 0 AND ativo = 1"
-            ).fetchone()[0]
+            conn = conectar()
 
             produtos_baixo = conn.execute(
                 "SELECT COUNT(*) FROM produtos WHERE quantidade <= estoque_minimo AND ativo = 1"
