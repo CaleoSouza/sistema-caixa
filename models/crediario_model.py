@@ -167,22 +167,44 @@ def calcular_saldo(cliente_id: int) -> float:
 
 def tem_debito_em_atraso(cliente_id: int) -> bool:
     """
-    Retorna True se o cliente tem algum item no crediário cuja data
-    é anterior a 30 dias atrás — critério para considerar 'em atraso'.
-    A data é armazenada como DD/MM/AAAA.
+    Retorna True se o cliente está em atraso, seguindo a regra:
+    - Se já fez pagamentos: está em atraso se o último pagamento
+      foi há mais de 30 dias (pagamento pontual reseta o prazo).
+    - Se nunca pagou: está em atraso se o item mais antigo
+      foi anotado há mais de 30 dias.
     """
     conn = conectar()
-    row = conn.execute(
-        """SELECT 1
-           FROM crediario_itens
-           WHERE cliente_id = ?
-             AND (
+
+    # Data do último pagamento (ISO), se existir
+    ultimo_pag = conn.execute(
+        """SELECT MAX(
                substr(data,7,4)||'-'||substr(data,4,2)||'-'||substr(data,1,2)
-               < date('now', '-30 days')
-             )
-           LIMIT 1""",
+           )
+           FROM historico_pagamentos
+           WHERE cliente_id = ?""",
         (cliente_id,),
-    ).fetchone()
+    ).fetchone()[0]
+
+    if ultimo_pag:
+        # Tem pagamentos: atraso se o último pagamento passou de 30 dias
+        row = conn.execute(
+            "SELECT 1 WHERE ? < date('now', '-30 days')",
+            (ultimo_pag,),
+        ).fetchone()
+    else:
+        # Sem pagamentos: atraso se algum item tem mais de 30 dias
+        row = conn.execute(
+            """SELECT 1
+               FROM crediario_itens
+               WHERE cliente_id = ?
+                 AND (
+                   substr(data,7,4)||'-'||substr(data,4,2)||'-'||substr(data,1,2)
+                   < date('now', '-30 days')
+                 )
+               LIMIT 1""",
+            (cliente_id,),
+        ).fetchone()
+
     conn.close()
     return row is not None
 

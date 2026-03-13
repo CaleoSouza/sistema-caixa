@@ -12,8 +12,10 @@ from database import conectar
 
 def listar_em_atraso() -> list:
     """
-    Retorna clientes ativos com crediário cujo débito está pendente há mais de 30 dias.
-    Somente considera 'em atraso' itens anotados há mais de 30 dias.
+    Retorna clientes ativos com crediário em atraso.
+    Regra:
+    - Com pagamentos: último pagamento há mais de 30 dias.
+    - Sem pagamentos: item mais antigo há mais de 30 dias.
     """
     conn = conectar()
     rows = conn.execute(
@@ -23,13 +25,37 @@ def listar_em_atraso() -> list:
            WHERE ativo = 1
              AND tem_crediario = 1
              AND debito_atual > 0
-             AND EXISTS (
-               SELECT 1 FROM crediario_itens ci
-               WHERE ci.cliente_id = clientes.id
-                 AND (
-                   substr(ci.data,7,4)||'-'||substr(ci.data,4,2)||'-'||substr(ci.data,1,2)
-                   < date('now', '-30 days')
+             AND (
+               -- Com pagamentos: último pagamento passou de 30 dias
+               (
+                 EXISTS (
+                   SELECT 1 FROM historico_pagamentos hp
+                   WHERE hp.cliente_id = clientes.id
                  )
+                 AND (
+                   SELECT MAX(
+                     substr(hp2.data,7,4)||'-'||substr(hp2.data,4,2)||'-'||substr(hp2.data,1,2)
+                   )
+                   FROM historico_pagamentos hp2
+                   WHERE hp2.cliente_id = clientes.id
+                 ) < date('now', '-30 days')
+               )
+               OR
+               -- Sem pagamentos: item mais antigo passou de 30 dias
+               (
+                 NOT EXISTS (
+                   SELECT 1 FROM historico_pagamentos hp
+                   WHERE hp.cliente_id = clientes.id
+                 )
+                 AND EXISTS (
+                   SELECT 1 FROM crediario_itens ci
+                   WHERE ci.cliente_id = clientes.id
+                     AND (
+                       substr(ci.data,7,4)||'-'||substr(ci.data,4,2)||'-'||substr(ci.data,1,2)
+                       < date('now', '-30 days')
+                     )
+                 )
+               )
              )
            ORDER BY debito_atual DESC""",
     ).fetchall()
@@ -88,19 +114,34 @@ def resumo_clientes() -> dict:
         "SELECT COUNT(*) FROM clientes WHERE ativo = 1"
     ).fetchone()[0]
 
-    # Em atraso: tem débito E possui item anotado há mais de 30 dias
+    # Em atraso: débito pendente E (sem pagamentos com item vencido OU último pagamento vencido)
     em_atraso = conn.execute(
         """SELECT COUNT(*) FROM clientes
            WHERE ativo = 1
              AND tem_crediario = 1
              AND debito_atual > 0
-             AND EXISTS (
-               SELECT 1 FROM crediario_itens ci
-               WHERE ci.cliente_id = clientes.id
+             AND (
+               (
+                 EXISTS (SELECT 1 FROM historico_pagamentos hp WHERE hp.cliente_id = clientes.id)
                  AND (
-                   substr(ci.data,7,4)||'-'||substr(ci.data,4,2)||'-'||substr(ci.data,1,2)
-                   < date('now', '-30 days')
+                   SELECT MAX(
+                     substr(hp2.data,7,4)||'-'||substr(hp2.data,4,2)||'-'||substr(hp2.data,1,2)
+                   )
+                   FROM historico_pagamentos hp2
+                   WHERE hp2.cliente_id = clientes.id
+                 ) < date('now', '-30 days')
+               )
+               OR (
+                 NOT EXISTS (SELECT 1 FROM historico_pagamentos hp WHERE hp.cliente_id = clientes.id)
+                 AND EXISTS (
+                   SELECT 1 FROM crediario_itens ci
+                   WHERE ci.cliente_id = clientes.id
+                     AND (
+                       substr(ci.data,7,4)||'-'||substr(ci.data,4,2)||'-'||substr(ci.data,1,2)
+                       < date('now', '-30 days')
+                     )
                  )
+               )
              )"""
     ).fetchone()[0]
 
@@ -111,13 +152,26 @@ def resumo_clientes() -> dict:
              AND tem_crediario = 1
              AND (
                debito_atual = 0
-               OR NOT EXISTS (
-                 SELECT 1 FROM crediario_itens ci
-                 WHERE ci.cliente_id = clientes.id
-                   AND (
-                     substr(ci.data,7,4)||'-'||substr(ci.data,4,2)||'-'||substr(ci.data,1,2)
-                     < date('now', '-30 days')
+               OR (
+                 EXISTS (SELECT 1 FROM historico_pagamentos hp WHERE hp.cliente_id = clientes.id)
+                 AND (
+                   SELECT MAX(
+                     substr(hp2.data,7,4)||'-'||substr(hp2.data,4,2)||'-'||substr(hp2.data,1,2)
                    )
+                   FROM historico_pagamentos hp2
+                   WHERE hp2.cliente_id = clientes.id
+                 ) >= date('now', '-30 days')
+               )
+               OR (
+                 NOT EXISTS (SELECT 1 FROM historico_pagamentos hp WHERE hp.cliente_id = clientes.id)
+                 AND NOT EXISTS (
+                   SELECT 1 FROM crediario_itens ci
+                   WHERE ci.cliente_id = clientes.id
+                     AND (
+                       substr(ci.data,7,4)||'-'||substr(ci.data,4,2)||'-'||substr(ci.data,1,2)
+                       < date('now', '-30 days')
+                     )
+                 )
                )
              )"""
     ).fetchone()[0]
