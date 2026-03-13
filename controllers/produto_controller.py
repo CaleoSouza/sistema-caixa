@@ -202,19 +202,19 @@ def excluir_imagem_produto(nome_arquivo: str) -> None:
 
 def _calcular_status(quantidade: int, estoque_minimo: int) -> str:
     """
-    Retorna o status textual do estoque:
+    Retorna o status textual do estoque pelas faixas fixas:
     - 'sem_estoque'   → quantidade = 0
-    - 'estoque_baixo' → quantidade <= estoque_minimo
-    - 'em_estoque'    → dentro do normal
-    - 'estoque_alto'  → quantidade >= 3x o mínimo
+    - 'estoque_baixo' → quantidade de 1 a 4
+    - 'em_estoque'    → quantidade de 5 a 25
+    - 'estoque_alto'  → quantidade de 26 a 100.000
     """
     if quantidade <= 0:
         return "sem_estoque"
-    if quantidade <= estoque_minimo:
+    if quantidade <= 4:
         return "estoque_baixo"
-    if quantidade >= estoque_minimo * 3:
-        return "estoque_alto"
-    return "em_estoque"
+    if quantidade <= 25:
+        return "em_estoque"
+    return "estoque_alto"
 
 
 # ------------------------------------------------------------------

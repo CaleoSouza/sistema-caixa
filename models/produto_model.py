@@ -11,14 +11,14 @@ from database import conectar
 # ------------------------------------------------------------------
 
 def listar_estoque_baixo() -> list:
-    """Retorna produtos ativos com quantidade > 0 e abaixo ou igual ao estoque mínimo."""
+    """Retorna produtos ativos com estoque crítico: sem estoque (0) ou baixo (1 a 4)."""
     conn = conectar()
     rows = conn.execute(
         """SELECT id, nome, categoria, fornecedor, preco, preco_custo,
                   quantidade, estoque_minimo, codigo_barras,
                   data_validade, imagem
            FROM produtos
-           WHERE ativo = 1 AND quantidade > 0 AND quantidade <= estoque_minimo
+           WHERE ativo = 1 AND quantidade <= 4
            ORDER BY quantidade ASC""",
     ).fetchall()
     conn.close()
@@ -119,9 +119,9 @@ def resumo_produtos() -> dict:
         "SELECT COALESCE(SUM(preco * quantidade), 0) FROM produtos WHERE ativo = 1"
     ).fetchone()[0]
 
+    # Estoque crítico = sem estoque (0) + baixo estoque (1 a 4)
     estoque_baixo = conn.execute(
-        """SELECT COUNT(*) FROM produtos
-           WHERE ativo = 1 AND quantidade > 0 AND quantidade <= estoque_minimo"""
+        "SELECT COUNT(*) FROM produtos WHERE ativo = 1 AND quantidade <= 4"
     ).fetchone()[0]
 
     # Produtos com data_validade válida e expirando nos próximos 30 dias
