@@ -210,15 +210,26 @@ def tem_debito_em_atraso(cliente_id: int) -> bool:
 
 
 def _sincronizar_debito(cliente_id: int):
-    """Atualiza debito_atual na tabela clientes com o saldo calculado."""
+    """
+    Atualiza debito_atual na tabela clientes com o saldo calculado.
+    Se o cliente tiver itens no crediário, ativa automaticamente tem_crediario = 1.
+    """
     saldo = calcular_saldo(cliente_id)
     conn = conectar()
+
+    # Verifica se existem itens no crediário para este cliente
+    tem_itens = conn.execute(
+        "SELECT 1 FROM crediario_itens WHERE cliente_id = ? LIMIT 1",
+        (cliente_id,),
+    ).fetchone() is not None
+
     conn.execute(
         """UPDATE clientes
            SET debito_atual = ?,
+               tem_crediario = CASE WHEN ? THEN 1 ELSE tem_crediario END,
                atualizado_em = datetime('now','localtime')
            WHERE id = ?""",
-        (saldo, cliente_id),
+        (saldo, tem_itens, cliente_id),
     )
     conn.commit()
     conn.close()
