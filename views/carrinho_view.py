@@ -677,21 +677,23 @@ class CarrinhoView(ctk.CTkFrame):
 
         entry = self.entry_cliente_busca
 
-        # Posição relativa ao CarrinhoView (self) para usar place()
-        ex = entry.winfo_rootx() - self.winfo_rootx()
-        ey = entry.winfo_rooty() - self.winfo_rooty() + entry.winfo_height() + 2
+        # Coordenadas absolutas de tela da entry
         w  = entry.winfo_width()
         h  = min(len(clientes[:8]) * 36 + 4, 180)
 
-        # Frame interno: fica dentro da própria janela, sem problemas de z-order do SO
+        # Usa a janela raiz como pai para evitar distorções do CTkScrollableFrame
+        root = self.winfo_toplevel()
+        ex = entry.winfo_rootx() - root.winfo_rootx()
+        ey = entry.winfo_rooty() - root.winfo_rooty() + entry.winfo_height() + 2
+
         # CTkFrame exige width/height no construtor, não no place()
         dd = ctk.CTkFrame(
-            self, fg_color="white", corner_radius=6,
+            root, fg_color="white", corner_radius=6,
             border_width=1, border_color="#cccccc",
             width=w, height=h,
         )
         dd.place(x=ex, y=ey)
-        dd.lift()   # garante que fica acima de todos os widgets irmãos
+        dd.lift()   # garante que fica acima de todos os widgets
 
         scroll = ctk.CTkScrollableFrame(dd, fg_color="white")
         scroll.pack(fill="both", expand=True)
