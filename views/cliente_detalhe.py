@@ -143,7 +143,7 @@ class ClienteDetalhe(ctk.CTkFrame):
             topo, fg_color="#f0f0f0", corner_radius=8,
             width=_FOTO_SIZE[0], height=_FOTO_SIZE[1],
         )
-        foto_frame.grid(row=0, column=0, padx=(0, 12))
+        foto_frame.grid(row=0, column=0, padx=(0, 12), sticky="n")
         foto_frame.grid_propagate(False)
         foto_frame.grid_columnconfigure(0, weight=1)
         foto_frame.grid_rowconfigure(0, weight=1)

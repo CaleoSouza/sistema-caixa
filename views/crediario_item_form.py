@@ -27,7 +27,7 @@ class CrediaroItemForm(ctk.CTkToplevel):
 
         titulo = "Editar Item do Crediário" if item_id else "Adicionar Item ao Crediário"
         self.title(titulo)
-        self.geometry("430x290")
+        self.geometry("430x340")
         self.resizable(False, False)
         self.grab_set()   # bloqueia a janela pai enquanto este popup estiver aberto
 
@@ -50,7 +50,7 @@ class CrediaroItemForm(ctk.CTkToplevel):
             row=0, column=0, padx=20, pady=(20, 4), sticky="w")
         self.entry_produto = ctk.CTkEntry(
             self, height=36, fg_color="white", border_color="#cccccc",
-            font=ctk.CTkFont(size=13), placeholder_text="Ex: Arroz 5kg",
+            font=ctk.CTkFont(size=13), placeholder_text="Apenas para Serviços e Mão de Obra.",
         )
         self.entry_produto.grid(row=1, column=0, padx=20, sticky="ew")
 

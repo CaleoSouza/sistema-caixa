@@ -89,26 +89,25 @@ class ProdutoForm(ctk.CTkFrame):
             text_color="#1f6aa5",
         ).grid(row=0, column=0, padx=30, pady=(24, 10), sticky="w")
 
-        # Painel central com os campos
-        painel = ctk.CTkFrame(self, fg_color="#d9d9d9", corner_radius=12)
+        # Painel central com scroll — adapta a telas menores sem esmagar os campos
+        painel = ctk.CTkScrollableFrame(self, fg_color="#d9d9d9", corner_radius=12)
         painel.grid(row=1, column=0, padx=30, pady=(0, 10), sticky="nsew")
-        painel.grid_columnconfigure((0, 1, 2), weight=1)
-        painel.grid_rowconfigure(0, weight=1)
+        painel.grid_columnconfigure(0, weight=1)
+        painel.grid_columnconfigure(1, weight=1)
 
         self._criar_coluna_esquerda(painel)
-        self._criar_coluna_central(painel)
         self._criar_coluna_direita(painel)
 
         # Botões de ação
         self._criar_botoes()
 
     # ------------------------------------------------------------------
-    # Coluna esquerda: Nome, Quantidade, Preço, Fornecedor
+    # Coluna esquerda: Nome, Quantidade, Preço, Fornecedor, Descrição
     # ------------------------------------------------------------------
 
     def _criar_coluna_esquerda(self, pai):
         col = ctk.CTkFrame(pai, fg_color="transparent")
-        col.grid(row=0, column=0, padx=(20, 10), pady=16, sticky="nsew")
+        col.grid(row=0, column=0, padx=(20, 10), pady=16, sticky="new")
         col.grid_columnconfigure(0, weight=1)
 
         # Nome do Produto
@@ -145,15 +144,24 @@ class ProdutoForm(ctk.CTkFrame):
                                              border_color="#cccccc", font=ctk.CTkFont(size=13))
         self.entry_fornecedor.grid(row=7, column=0, sticky="ew")
 
+        # Descrição (expande para preencher o espaço restante)
+        ctk.CTkLabel(col, text="Descrição",
+                     font=ctk.CTkFont(size=13), text_color="#333333").grid(
+            row=8, column=0, sticky="w", pady=(14, 4))
+        self.text_descricao = ctk.CTkTextbox(col, height=160, fg_color="white", border_width=1,
+                                             border_color="#cccccc", font=ctk.CTkFont(size=13),
+                                             corner_radius=8)
+        self.text_descricao.grid(row=9, column=0, sticky="ew")
+        self.text_descricao.insert("1.0", "")
+
     # ------------------------------------------------------------------
-    # Coluna central: Data de Validade, Categoria, Descrição
+    # Coluna direita: Data Validade, Categoria, Código de Barras, Imagem
     # ------------------------------------------------------------------
 
-    def _criar_coluna_central(self, pai):
+    def _criar_coluna_direita(self, pai):
         col = ctk.CTkFrame(pai, fg_color="transparent")
-        col.grid(row=0, column=1, padx=10, pady=16, sticky="nsew")
+        col.grid(row=0, column=1, padx=(10, 20), pady=16, sticky="new")
         col.grid_columnconfigure(0, weight=1)
-        col.grid_rowconfigure(5, weight=1)  # descrição expande
 
         # Data de Validade
         ctk.CTkLabel(col, text="Data de Validade",
@@ -165,44 +173,24 @@ class ProdutoForm(ctk.CTkFrame):
         self.entry_validade.grid(row=1, column=0, sticky="ew")
         ctk.CTkLabel(col, text="Opcional - Para produtos perecíveis",
                      font=ctk.CTkFont(size=10), text_color="#888888").grid(
-            row=2, column=0, sticky="w")
+            row=2, column=0, sticky="w", pady=(2, 0))
 
         # Categoria
         ctk.CTkLabel(col, text="Categoria",
                      font=ctk.CTkFont(size=13), text_color="#333333").grid(
-            row=3, column=0, sticky="w", pady=(10, 4))
+            row=3, column=0, sticky="w", pady=(14, 4))
         self.entry_categoria = ctk.CTkEntry(col, height=36, fg_color="white",
                                             border_color="#cccccc", font=ctk.CTkFont(size=13),
                                             placeholder_text="Ex: Bebidas, Alimentos")
         self.entry_categoria.grid(row=4, column=0, sticky="ew")
 
-        # Descrição
-        ctk.CTkLabel(col, text="Descrição",
-                     font=ctk.CTkFont(size=13), text_color="#333333").grid(
-            row=5, column=0, sticky="w", pady=(10, 4))
-        self.text_descricao = ctk.CTkTextbox(col, fg_color="white", border_width=1,
-                                             border_color="#cccccc", font=ctk.CTkFont(size=13),
-                                             corner_radius=8)
-        self.text_descricao.grid(row=6, column=0, sticky="nsew")
-        self.text_descricao.insert("1.0", "")
-        col.grid_rowconfigure(6, weight=1)
-
-    # ------------------------------------------------------------------
-    # Coluna direita: Código de Barras, Imagem
-    # ------------------------------------------------------------------
-
-    def _criar_coluna_direita(self, pai):
-        col = ctk.CTkFrame(pai, fg_color="transparent")
-        col.grid(row=0, column=2, padx=(10, 20), pady=16, sticky="nsew")
-        col.grid_columnconfigure(0, weight=1)
-
         # --- Código de Barras ---
         ctk.CTkLabel(col, text="Código de Barras",
                      font=ctk.CTkFont(size=13), text_color="#333333").grid(
-            row=0, column=0, columnspan=2, sticky="w", pady=(0, 4))
+            row=5, column=0, sticky="w", pady=(14, 4))
 
         frame_cod = ctk.CTkFrame(col, fg_color="transparent")
-        frame_cod.grid(row=1, column=0, columnspan=2, sticky="ew")
+        frame_cod.grid(row=6, column=0, sticky="ew")
         frame_cod.grid_columnconfigure(0, weight=1)
 
         self.entry_codigo_barras = ctk.CTkEntry(
@@ -211,25 +199,25 @@ class ProdutoForm(ctk.CTkFrame):
         self.entry_codigo_barras.grid(row=0, column=0, sticky="ew", padx=(0, 8))
 
         ctk.CTkButton(
-            frame_cod, text="Gerar", width=70, height=36,
+            frame_cod, text="Gerar", width=80, height=36,
             font=ctk.CTkFont(size=13, weight="bold"),
             command=self._gerar_codigo_barras,
         ).grid(row=0, column=1)
 
         ctk.CTkLabel(col, text="Opcional - Gerado automaticamente se vazio",
                      font=ctk.CTkFont(size=10), text_color="#888888").grid(
-            row=2, column=0, columnspan=2, sticky="w", pady=(2, 0))
+            row=7, column=0, sticky="nw", pady=(2, 8))
 
         # --- Imagem do Produto ---
         ctk.CTkLabel(col, text="Adicionar Imagem",
                      font=ctk.CTkFont(size=13), text_color="#333333").grid(
-            row=3, column=0, columnspan=2, sticky="w", pady=(14, 4))
+            row=8, column=0, sticky="w", pady=(4, 4))
 
-        # Área de preview
+        # Área de preview com altura fixa
         self.frame_imagem = ctk.CTkFrame(
             col, fg_color="white", border_width=1, border_color="#cccccc",
-            corner_radius=8, width=230, height=160)
-        self.frame_imagem.grid(row=4, column=0, columnspan=2, sticky="ew")
+            corner_radius=8, height=200)
+        self.frame_imagem.grid(row=9, column=0, sticky="ew")
         self.frame_imagem.grid_propagate(False)
         self.frame_imagem.grid_columnconfigure(0, weight=1)
         self.frame_imagem.grid_rowconfigure(0, weight=1)
@@ -239,26 +227,30 @@ class ProdutoForm(ctk.CTkFrame):
             text_color="#bbbbbb", font=ctk.CTkFont(size=13))
         self.lbl_preview.grid(row=0, column=0)
 
-        # Botões de imagem
+        # Botões de imagem + aviso
         frame_btn_img = ctk.CTkFrame(col, fg_color="transparent")
-        frame_btn_img.grid(row=5, column=0, columnspan=2, sticky="e", pady=(6, 0))
+        frame_btn_img.grid(row=10, column=0, sticky="ew", pady=(6, 0))
+        frame_btn_img.grid_columnconfigure(0, weight=1)
+
+        ctk.CTkLabel(frame_btn_img, text="Imagem tamanho máximo 1mb",
+                     font=ctk.CTkFont(size=10), text_color="#888888").grid(
+            row=0, column=0, sticky="w")
+
+        frame_btns = ctk.CTkFrame(frame_btn_img, fg_color="transparent")
+        frame_btns.grid(row=0, column=1, sticky="e")
 
         ctk.CTkButton(
-            frame_btn_img, text="Adicionar", width=90, height=30,
+            frame_btns, text="Adicionar", width=90, height=30,
             font=ctk.CTkFont(size=12, weight="bold"),
             command=self._escolher_imagem,
         ).grid(row=0, column=0, padx=(0, 6))
 
         ctk.CTkButton(
-            frame_btn_img, text="Excluir", width=80, height=30,
+            frame_btns, text="Excluir", width=80, height=30,
             fg_color="#e53935", hover_color="#c62828",
             font=ctk.CTkFont(size=12, weight="bold"),
             command=self._excluir_imagem,
         ).grid(row=0, column=1)
-
-        ctk.CTkLabel(col, text="Imagem tamanho máximo 1mb",
-                     font=ctk.CTkFont(size=10), text_color="#888888").grid(
-            row=6, column=0, columnspan=2, sticky="w", pady=(4, 0))
 
     # ------------------------------------------------------------------
     # Botões Cancelar / Adicionar (ou Salvar)
