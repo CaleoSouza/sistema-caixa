@@ -23,27 +23,22 @@ STATUS_INFO = {
 }
 
 # ------------------------------------------------------------------
-# Definição das colunas da tabela: (rótulo, largura_px)
-# Larguras fixas garantem alinhamento perfeito entre cabeçalho e linhas
+# Definição das colunas da tabela: (rótulo, peso_relativo)
+# Pesos proporcionais tornam a tabela responsiva ao redimensionamento da janela
 # ------------------------------------------------------------------
 COLUNAS_TABELA = [
-    ("ID",         55),
-    ("Produto",   150),
-    ("Quantidade",  85),
-    ("Preço",     100),
-    ("Total",     120),
-    ("Status",    120),
-    ("Ações",      90),
+    ("ID",         1),
+    ("Produto",    5),
+    ("Quantidade", 2),
+    ("Preço",      2),
+    ("Total",      2),
+    ("Status",     2),
+    ("Ações",      0),   # largura fixa via minsize
 ]
-
-# Máximo de caracteres antes de truncar com "…" (por coluna)
-_MAX_CHARS = [None, 18, None, None, None, None, None]
 
 
 def _truncar(texto: str, max_chars: int | None) -> str:
-    """Trunca texto longo com reticências para manter alinhamento da tabela."""
-    if max_chars and len(texto) > max_chars:
-        return texto[:max_chars - 1] + "…"
+    """Mantido por compatibilidade; com colunas responsivas o truncamento não é mais necessário."""
     return texto
 
 
@@ -164,9 +159,11 @@ class ProdutosView(ctk.CTkFrame):
         )
         self.scroll_frame.grid(row=1, column=0, sticky="nsew", padx=10, pady=(0, 10))
 
-        for i, (_, largura) in enumerate(COLUNAS_TABELA):
-            self.scroll_frame.grid_columnconfigure(i, minsize=largura, weight=0)
-        self.scroll_frame.grid_columnconfigure(len(COLUNAS_TABELA), weight=1)
+        for i, (rot, peso) in enumerate(COLUNAS_TABELA):
+            if rot == "Ações":
+                self.scroll_frame.grid_columnconfigure(i, weight=0, minsize=72)
+            else:
+                self.scroll_frame.grid_columnconfigure(i, weight=peso)
 
     # ------------------------------------------------------------------
     # Cards de resumo (parte inferior)
@@ -282,14 +279,14 @@ class ProdutosView(ctk.CTkFrame):
         for widget in self.scroll_frame.winfo_children():
             widget.destroy()
 
-        # Cabeçalho dentro do scroll (row=0) — garante alinhamento perfeito com os dados
-        for i, (rotulo, largura) in enumerate(COLUNAS_TABELA):
+        # Cabeçalho dentro do scroll (row=0) — alinhamento perfeito com os dados
+        for i, (rotulo, _) in enumerate(COLUNAS_TABELA):
             ctk.CTkLabel(
                 self.scroll_frame, text=rotulo,
                 font=ctk.CTkFont(size=12, weight="bold"),
-                text_color="#555555", width=largura, anchor="w",
+                text_color="#555555", anchor="w",
                 fg_color="#f0f0f0",
-            ).grid(row=0, column=i, padx=(8, 0), pady=6, sticky="w")
+            ).grid(row=0, column=i, padx=(8, 0), pady=6, sticky="ew")
 
         # Renderiza cada linha a partir de row=1
         for linha, p in enumerate(produtos, start=1):
@@ -306,29 +303,28 @@ class ProdutosView(ctk.CTkFrame):
         txt_status, cor_status = STATUS_INFO.get(status, ("Em estoque", "#1a1a1a"))
         total_valor = produto["preco"] * produto["quantidade"]
 
-        # Cada tupla: (texto, cor, negrito, largura_coluna)
+        # Cada tupla: (texto, cor, negrito)
         dados_cols = [
-            (f"#{produto['id']:02d}",                     "#555555",  False, COLUNAS_TABELA[0][1]),
-            (_truncar(produto["nome"], _MAX_CHARS[1]),    "#1f6aa5",  False, COLUNAS_TABELA[1][1]),
-            (str(produto["quantidade"]),                  "#1a1a1a",  False, COLUNAS_TABELA[2][1]),
-            (formatar_moeda(produto["preco"]),            "#1a1a1a",  False, COLUNAS_TABELA[3][1]),
-            (formatar_moeda(total_valor),                 "#1a1a1a",  False, COLUNAS_TABELA[4][1]),
-            (txt_status,                                  cor_status, True,  COLUNAS_TABELA[5][1]),
+            (f"#{produto['id']:02d}",          "#555555",  False),
+            (produto["nome"],                  "#1f6aa5",  False),
+            (str(produto["quantidade"]),       "#1a1a1a",  False),
+            (formatar_moeda(produto["preco"]), "#1a1a1a",  False),
+            (formatar_moeda(total_valor),      "#1a1a1a",  False),
+            (txt_status,                       cor_status, True),
         ]
 
         widgets_linha = []
 
-        for col, (texto, cor, negrito, largura) in enumerate(dados_cols):
+        for col, (texto, cor, negrito) in enumerate(dados_cols):
             lbl = ctk.CTkLabel(
                 self.scroll_frame,
                 text=texto,
                 font=ctk.CTkFont(size=13, weight="bold" if negrito else "normal"),
                 text_color=cor,
                 anchor="w",
-                width=largura,
                 cursor="hand2",
             )
-            lbl.grid(row=linha, column=col, padx=(8, 0), pady=6, sticky="w")
+            lbl.grid(row=linha, column=col, padx=(8, 0), pady=6, sticky="ew")
             widgets_linha.append(lbl)
             lbl.bind("<Button-1>",
                      lambda e, pid=produto["id"]: self._abrir_detalhe(pid))
@@ -340,11 +336,9 @@ class ProdutosView(ctk.CTkFrame):
         nome_lbl.bind("<Enter>", lambda e: nome_lbl.configure(font=fonte_hover))
         nome_lbl.bind("<Leave>", lambda e: nome_lbl.configure(font=fonte_normal))
 
-        # Botões de ação (editar e excluir) — na coluna 6 com largura fixa
-        frame_acoes = ctk.CTkFrame(
-            self.scroll_frame, fg_color="transparent",
-            width=COLUNAS_TABELA[6][1])
-        frame_acoes.grid(row=linha, column=6, padx=(8, 0), pady=4, sticky="w")
+        # Botões de ação (editar e excluir) — na coluna 6
+        frame_acoes = ctk.CTkFrame(self.scroll_frame, fg_color="transparent")
+        frame_acoes.grid(row=linha, column=6, padx=(8, 0), pady=4, sticky="ew")
 
         ctk.CTkButton(
             frame_acoes,

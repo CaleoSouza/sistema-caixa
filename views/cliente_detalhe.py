@@ -38,14 +38,14 @@ STATUS_BADGE = {
     "em_atraso":   ("Em atraso",   "#fde8e8", "#e53935"),
 }
 
-# Colunas da tabela de itens do crediário: (rótulo, largura px)
+# Colunas da tabela de itens do crediário: (rótulo, peso_relativo)
 COLS_CRED = [
-    ("ID", 38), ("Produto", 120), ("Data", 82),
-    ("Qtd.", 42), ("Preço", 78), ("Total", 78), ("Ações", 92),
+    ("ID", 1), ("Produto", 4), ("Data", 2),
+    ("Qtd.", 1), ("Preço", 2), ("Total", 2), ("Ações", 0),
 ]
 
 # Colunas da tabela de histórico de pagamentos
-COLS_PAG = [("Data", 95), ("Tipo", 105), ("Valor", 92), ("Ações", 92)]
+COLS_PAG = [("Data", 3), ("Tipo", 3), ("Valor", 3), ("Ações", 0)]
 
 
 class ClienteDetalhe(ctk.CTkFrame):
@@ -322,9 +322,11 @@ class ClienteDetalhe(ctk.CTkFrame):
             card, fg_color="white", corner_radius=0,
         )
         self.scroll_itens.grid(row=1, column=0, padx=8, pady=(0, 8), sticky="nsew")
-        for i, (_, larg) in enumerate(COLS_CRED):
-            self.scroll_itens.grid_columnconfigure(i, minsize=larg, weight=0)
-        self.scroll_itens.grid_columnconfigure(len(COLS_CRED), weight=1)
+        for i, (rot, peso) in enumerate(COLS_CRED):
+            if rot == "Ações":
+                self.scroll_itens.grid_columnconfigure(i, weight=0, minsize=88)
+            else:
+                self.scroll_itens.grid_columnconfigure(i, weight=peso)
 
         self._recarregar_itens()
 
@@ -356,9 +358,11 @@ class ClienteDetalhe(ctk.CTkFrame):
             card, fg_color="white", corner_radius=0,
         )
         self.scroll_pags.grid(row=1, column=0, padx=8, pady=(0, 4), sticky="nsew")
-        for i, (_, larg) in enumerate(COLS_PAG):
-            self.scroll_pags.grid_columnconfigure(i, minsize=larg, weight=0)
-        self.scroll_pags.grid_columnconfigure(len(COLS_PAG), weight=1)
+        for i, (rot, peso) in enumerate(COLS_PAG):
+            if rot == "Ações":
+                self.scroll_pags.grid_columnconfigure(i, weight=0, minsize=88)
+            else:
+                self.scroll_pags.grid_columnconfigure(i, weight=peso)
 
         # Separador + Saldo Devedor
         ctk.CTkFrame(card, fg_color="#e0e0e0", height=1).grid(
@@ -384,13 +388,13 @@ class ClienteDetalhe(ctk.CTkFrame):
     # ------------------------------------------------------------------
     def _inserir_cabecalho(self, scroll, colunas: list):
         """Renderiza o cabeçalho como primeira linha do CTkScrollableFrame."""
-        for i, (rot, larg) in enumerate(colunas):
+        for i, (rot, _) in enumerate(colunas):
             ctk.CTkLabel(
                 scroll, text=rot,
                 font=ctk.CTkFont(size=11, weight="bold"),
-                text_color="#555555", width=larg, anchor="w",
+                text_color="#555555", anchor="w",
                 fg_color="#f0f0f0",
-            ).grid(row=0, column=i, padx=(6, 0), pady=(2, 4), sticky="w")
+            ).grid(row=0, column=i, padx=(6, 0), pady=(2, 4), sticky="ew")
 
     # ------------------------------------------------------------------
     # Recarregamento das tabelas
@@ -423,8 +427,8 @@ class ClienteDetalhe(ctk.CTkFrame):
                 ctk.CTkLabel(
                     self.scroll_itens, text=texto,
                     font=ctk.CTkFont(size=12), text_color=cor,
-                    width=COLS_CRED[col][1], anchor="w",
-                ).grid(row=linha, column=col, padx=(6, 0), pady=2, sticky="w")
+                    anchor="w",
+                ).grid(row=linha, column=col, padx=(6, 0), pady=2, sticky="ew")
 
             # Botões de ação da linha
             fa = ctk.CTkFrame(self.scroll_itens, fg_color="transparent")
@@ -473,8 +477,8 @@ class ClienteDetalhe(ctk.CTkFrame):
                     ctk.CTkLabel(
                         self.scroll_pags, text=texto,
                         font=ctk.CTkFont(size=12), text_color=cor,
-                        width=COLS_PAG[col][1], anchor="w",
-                    ).grid(row=linha, column=col, padx=(6, 0), pady=2, sticky="w")
+                        anchor="w",
+                    ).grid(row=linha, column=col, padx=(6, 0), pady=2, sticky="ew")
 
                 fa = ctk.CTkFrame(self.scroll_pags, fg_color="transparent")
                 fa.grid(row=linha, column=3, padx=(2, 0), pady=2, sticky="w")
