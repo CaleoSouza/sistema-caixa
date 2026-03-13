@@ -26,7 +26,7 @@ def listar_estoque_baixo() -> list:
 
 
 def listar_proximos_vencer() -> list:
-    """Retorna produtos ativos com data_validade válida e expirando nos próximos 30 dias."""
+    """Retorna produtos ativos com data_validade válida, já vencidos ou vencendo nos próximos 30 dias."""
     conn = conectar()
     rows = conn.execute(
         """SELECT id, nome, categoria, fornecedor, preco, preco_custo,
@@ -36,7 +36,6 @@ def listar_proximos_vencer() -> list:
            WHERE ativo = 1
              AND data_validade IS NOT NULL
              AND data_validade != ''
-             AND date(data_validade) >= date('now')
              AND date(data_validade) <= date('now', '+30 days')
            ORDER BY data_validade ASC""",
     ).fetchall()
@@ -124,13 +123,12 @@ def resumo_produtos() -> dict:
         "SELECT COUNT(*) FROM produtos WHERE ativo = 1 AND quantidade <= 4"
     ).fetchone()[0]
 
-    # Produtos com data_validade válida e expirando nos próximos 30 dias
+    # Produtos já vencidos ou com validade nos próximos 30 dias
     proximos_vencer = conn.execute(
         """SELECT COUNT(*) FROM produtos
            WHERE ativo = 1
              AND data_validade IS NOT NULL
              AND data_validade != ''
-             AND date(data_validade) >= date('now')
              AND date(data_validade) <= date('now', '+30 days')"""
     ).fetchone()[0]
 
