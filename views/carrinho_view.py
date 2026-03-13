@@ -662,20 +662,6 @@ class CarrinhoView(ctk.CTkFrame):
     # Fase 2: busca e sele\u00e7\u00e3o de cliente
     # ------------------------------------------------------------------
     def _buscar_cliente(self, event=None):
-        """Abre dropdown com sugest\u00f5es de cliente a partir de 3 caracteres."""
-        texto = self.entry_cliente_busca.get().strip()
-
-        # Fecha dropdown anterior
-        self._fechar_dropdown_cliente()
-
-        if len(texto) < 3:
-            return
-
-        clientes = listar_clientes(texto)
-        if not clientes:
-            return
-
-    def _buscar_cliente(self, event=None):
         """Abre dropdown com sugestões de cliente a partir de 3 caracteres."""
         texto = self.entry_cliente_busca.get().strip()
 
@@ -726,7 +712,6 @@ class CarrinhoView(ctk.CTkFrame):
     def _fechar_dropdown_cliente(self):
         """Fecha o dropdown de sugest\u00f5es de cliente."""
         if self._dropdown_cliente and self._dropdown_cliente.winfo_exists():
-            self._dropdown_cliente.destroy()
             self._dropdown_cliente.place_forget()
             self._dropdown_cliente.destroy()
 
