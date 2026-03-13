@@ -941,12 +941,19 @@ class CarrinhoView(ctk.CTkFrame):
         self.btn_credito.grid(row=0, column=1, padx=(4, 0), sticky="ew")
         self._atualizar_cores_tipo_cartao()
 
-        # Informa\u00e7\u00e3o de taxa (apenas refer\u00eancia interna)
+        # Informação de taxa + valor líquido para o estabelecimento
+        subtotal_taxa  = sum(item["subtotal"] for item in self._carrinho)
+        desconto_taxa  = round(subtotal_taxa * self._desconto_pct / 100, 2)
+        total_taxa     = round(subtotal_taxa - desconto_taxa, 2)
         if self._tipo_cartao == "debito":
-            taxa_str = f"Taxa interna: {_TAXA_DEBITO:.2f}%"
+            pct_taxa   = _TAXA_DEBITO
         else:
-            taxa = _TAXAS_CREDITO.get(self._parcelas, 0.0)
-            taxa_str = f"Taxa interna: {taxa:.2f}%"
+            pct_taxa   = _TAXAS_CREDITO.get(self._parcelas, 0.0)
+        valor_liquido  = round(total_taxa * (1 - pct_taxa / 100), 2)
+        taxa_str = (
+            f"Taxa interna: {pct_taxa:.2f}%"
+            f"    —    Valor para o estabelecimento: {formatar_moeda(valor_liquido)}"
+        )
         ctk.CTkLabel(
             inner, text=taxa_str,
             font=ctk.CTkFont(size=10), text_color="#aaaaaa",
