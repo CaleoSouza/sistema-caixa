@@ -246,6 +246,13 @@ def _migrar_tabelas(conn):
     if "auto_origem_id" not in colunas_despesas:
         conn.execute("ALTER TABLE despesas ADD COLUMN auto_origem_id INTEGER DEFAULT NULL")
 
+    # Índice único de CPF (parcial: ignora nulos e vazios)
+    conn.execute("""
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_clientes_cpf_unico
+        ON clientes(cpf)
+        WHERE cpf IS NOT NULL AND cpf != ''
+    """)
+
 
 # Permite inicializar o banco executando este arquivo diretamente
 if __name__ == "__main__":

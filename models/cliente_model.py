@@ -106,6 +106,23 @@ def buscar_por_id(cliente_id: int) -> dict | None:
 # Resumo para os cards da tela
 # ------------------------------------------------------------------
 
+def buscar_por_cpf(cpf: str, excluir_id: int = None):
+    """Retorna o cliente com o CPF informado, excluindo opcionalmente um ID (para edição)."""
+    conn = conectar()
+    if excluir_id:
+        row = conn.execute(
+            "SELECT id, nome FROM clientes WHERE cpf = ? AND id != ? AND ativo = 1",
+            (cpf, excluir_id),
+        ).fetchone()
+    else:
+        row = conn.execute(
+            "SELECT id, nome FROM clientes WHERE cpf = ? AND ativo = 1",
+            (cpf,),
+        ).fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+
 def resumo_clientes() -> dict:
     """Retorna estatísticas para os 3 cards da tela de clientes."""
     conn = conectar()

@@ -13,6 +13,7 @@ from models.cliente_model import (
     listar_clientes,
     listar_em_atraso,
     buscar_por_id,
+    buscar_por_cpf,
     resumo_clientes,
     inserir_cliente,
     atualizar_cliente,
@@ -72,7 +73,7 @@ def salvar(dados: dict, cliente_id: int = None) -> tuple[bool, str]:
     Cria ou atualiza um cliente após validação.
     Retorna (sucesso: bool, mensagem: str).
     """
-    ok, msg = _validar(dados)
+    ok, msg = _validar(dados, cliente_id)
     if not ok:
         return False, msg
 
@@ -153,11 +154,19 @@ def _calcular_status(cliente: dict) -> str:
     return "em_dia"
 
 
-def _validar(dados: dict) -> tuple[bool, str]:
-    """Validação básica dos dados do cliente."""
+def _validar(dados: dict, cliente_id: int = None) -> tuple[bool, str]:
+    """Validação dos dados do cliente, incluindo CPF único."""
     nome = (dados.get("nome") or "").strip()
     if not nome:
         return False, "O nome do cliente é obrigatório."
     if len(nome) < 2:
         return False, "O nome deve ter ao menos 2 caracteres."
+
+    # Verifica CPF duplicado (ignora se CPF não foi informado)
+    cpf = (dados.get("cpf") or "").strip()
+    if cpf:
+        existente = buscar_por_cpf(cpf, excluir_id=cliente_id)
+        if existente:
+            return False, f"CPF já cadastrado para o cliente '{existente['nome']}' (ID {existente['id']})."
+
     return True, ""
