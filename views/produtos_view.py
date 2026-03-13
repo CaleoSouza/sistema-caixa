@@ -145,7 +145,7 @@ class ProdutosView(ctk.CTkFrame):
         container = ctk.CTkFrame(self, fg_color="white", corner_radius=12)
         container.grid(row=2, column=0, padx=30, pady=(0, 10), sticky="nsew")
         container.grid_columnconfigure(0, weight=1)
-        container.grid_rowconfigure(2, weight=1)
+        container.grid_rowconfigure(1, weight=1)
 
         # Título da tabela
         self.label_total = ctk.CTkLabel(
@@ -156,35 +156,16 @@ class ProdutosView(ctk.CTkFrame):
         )
         self.label_total.grid(row=0, column=0, padx=20, pady=(14, 6), sticky="w")
 
-        # Cabeçalho fixo — uma CTkLabel por coluna com largura exata
-        cabecalho = ctk.CTkFrame(container, fg_color="#f0f0f0", corner_radius=0, height=36)
-        cabecalho.grid(row=1, column=0, sticky="ew", padx=10)
-        cabecalho.grid_propagate(False)
-
-        for i, (rotulo, largura) in enumerate(COLUNAS_TABELA):
-            cabecalho.grid_columnconfigure(i, minsize=largura, weight=0)
-            ctk.CTkLabel(
-                cabecalho,
-                text=rotulo,
-                font=ctk.CTkFont(size=12, weight="bold"),
-                text_color="#555555",
-                width=largura,
-                anchor="w",
-            ).grid(row=0, column=i, padx=(8, 0), pady=6, sticky="w")
-        # Coluna filler: expande para absorver o espaço da scrollbar e do container
-        cabecalho.grid_columnconfigure(len(COLUNAS_TABELA), weight=1)
-
-        # Área scrollável para as linhas — mesmas larguras de coluna
+        # Área scrollável — cabeçalho renderizado dentro (row=0) para alinhamento perfeito
         self.scroll_frame = ctk.CTkScrollableFrame(
             container,
             fg_color="white",
             corner_radius=0,
         )
-        self.scroll_frame.grid(row=2, column=0, sticky="nsew", padx=10, pady=(0, 10))
+        self.scroll_frame.grid(row=1, column=0, sticky="nsew", padx=10, pady=(0, 10))
 
         for i, (_, largura) in enumerate(COLUNAS_TABELA):
             self.scroll_frame.grid_columnconfigure(i, minsize=largura, weight=0)
-        # Coluna filler: absorve scrollbar e espaço extra, evita corte da última coluna
         self.scroll_frame.grid_columnconfigure(len(COLUNAS_TABELA), weight=1)
 
     # ------------------------------------------------------------------
@@ -301,9 +282,18 @@ class ProdutosView(ctk.CTkFrame):
         for widget in self.scroll_frame.winfo_children():
             widget.destroy()
 
-        # Renderiza cada linha
-        for linha, p in enumerate(produtos):
-            bg = "white" if linha % 2 == 0 else "#f9f9f9"
+        # Cabeçalho dentro do scroll (row=0) — garante alinhamento perfeito com os dados
+        for i, (rotulo, largura) in enumerate(COLUNAS_TABELA):
+            ctk.CTkLabel(
+                self.scroll_frame, text=rotulo,
+                font=ctk.CTkFont(size=12, weight="bold"),
+                text_color="#555555", width=largura, anchor="w",
+                fg_color="#f0f0f0",
+            ).grid(row=0, column=i, padx=(8, 0), pady=6, sticky="w")
+
+        # Renderiza cada linha a partir de row=1
+        for linha, p in enumerate(produtos, start=1):
+            bg = "white" if linha % 2 == 1 else "#f9f9f9"
             self._criar_linha(linha, p, bg)
 
         # Atualiza visual dos cards (highlight do filtro ativo) e os valores

@@ -290,7 +290,7 @@ class ClienteDetalhe(ctk.CTkFrame):
         card = ctk.CTkFrame(pai, fg_color="white", corner_radius=12)
         card.grid(row=0, column=0, pady=(0, 8), sticky="nsew")
         card.grid_columnconfigure(0, weight=1)
-        card.grid_rowconfigure(2, weight=1)   # scroll estica
+        card.grid_rowconfigure(1, weight=1)   # scroll estica
 
         # Cabeçalho
         hdr = ctk.CTkFrame(card, fg_color="transparent")
@@ -317,14 +317,11 @@ class ClienteDetalhe(ctk.CTkFrame):
             command=self._imprimir_completo,
         ).grid(row=0, column=1)
 
-        # Cabeçalho fixo da tabela
-        self._criar_cabecalho_tabela(card, COLS_CRED, row=1)
-
-        # Área de rolagem dos itens
+        # Área de rolagem dos itens — cabeçalho renderizado dentro (row=0)
         self.scroll_itens = ctk.CTkScrollableFrame(
             card, fg_color="white", corner_radius=0,
         )
-        self.scroll_itens.grid(row=2, column=0, padx=8, pady=(0, 8), sticky="nsew")
+        self.scroll_itens.grid(row=1, column=0, padx=8, pady=(0, 8), sticky="nsew")
         for i, (_, larg) in enumerate(COLS_CRED):
             self.scroll_itens.grid_columnconfigure(i, minsize=larg, weight=0)
         self.scroll_itens.grid_columnconfigure(len(COLS_CRED), weight=1)
@@ -336,7 +333,7 @@ class ClienteDetalhe(ctk.CTkFrame):
         card = ctk.CTkFrame(pai, fg_color="white", corner_radius=12)
         card.grid(row=1, column=0, sticky="nsew")
         card.grid_columnconfigure(0, weight=1)
-        card.grid_rowconfigure(2, weight=1)   # scroll estica
+        card.grid_rowconfigure(1, weight=1)   # scroll estica
 
         # Cabeçalho
         hdr = ctk.CTkFrame(card, fg_color="transparent")
@@ -354,24 +351,21 @@ class ClienteDetalhe(ctk.CTkFrame):
             command=self._adicionar_pagamento,
         ).grid(row=0, column=1, sticky="e")
 
-        # Cabeçalho fixo da tabela
-        self._criar_cabecalho_tabela(card, COLS_PAG, row=1)
-
-        # Área de rolagem dos pagamentos
+        # Área de rolagem dos pagamentos — cabeçalho renderizado dentro (row=0)
         self.scroll_pags = ctk.CTkScrollableFrame(
             card, fg_color="white", corner_radius=0,
         )
-        self.scroll_pags.grid(row=2, column=0, padx=8, pady=(0, 4), sticky="nsew")
+        self.scroll_pags.grid(row=1, column=0, padx=8, pady=(0, 4), sticky="nsew")
         for i, (_, larg) in enumerate(COLS_PAG):
             self.scroll_pags.grid_columnconfigure(i, minsize=larg, weight=0)
         self.scroll_pags.grid_columnconfigure(len(COLS_PAG), weight=1)
 
         # Separador + Saldo Devedor
         ctk.CTkFrame(card, fg_color="#e0e0e0", height=1).grid(
-            row=3, column=0, padx=12, pady=(4, 4), sticky="ew")
+            row=2, column=0, padx=12, pady=(4, 4), sticky="ew")
 
         frame_saldo = ctk.CTkFrame(card, fg_color="transparent")
-        frame_saldo.grid(row=4, column=0, padx=12, pady=(0, 10), sticky="e")
+        frame_saldo.grid(row=3, column=0, padx=12, pady=(0, 10), sticky="e")
 
         ctk.CTkLabel(
             frame_saldo, text="Saldo Devedor: ",
@@ -386,20 +380,17 @@ class ClienteDetalhe(ctk.CTkFrame):
         self._recarregar_pagamentos()
 
     # ------------------------------------------------------------------
-    # Utilitário: cabeçalho de tabela fixo
+    # Utilitário: cabeçalho de tabela dentro do scroll (row=0)
     # ------------------------------------------------------------------
-    def _criar_cabecalho_tabela(self, pai, colunas: list, row: int):
-        cab = ctk.CTkFrame(pai, fg_color="#f0f0f0", corner_radius=0, height=28)
-        cab.grid(row=row, column=0, padx=8, sticky="ew")
-        cab.grid_propagate(False)
+    def _inserir_cabecalho(self, scroll, colunas: list):
+        """Renderiza o cabeçalho como primeira linha do CTkScrollableFrame."""
         for i, (rot, larg) in enumerate(colunas):
-            cab.grid_columnconfigure(i, minsize=larg, weight=0)
             ctk.CTkLabel(
-                cab, text=rot,
+                scroll, text=rot,
                 font=ctk.CTkFont(size=11, weight="bold"),
                 text_color="#555555", width=larg, anchor="w",
-            ).grid(row=0, column=i, padx=(6, 0), pady=2, sticky="w")
-        cab.grid_columnconfigure(len(colunas), weight=1)
+                fg_color="#f0f0f0",
+            ).grid(row=0, column=i, padx=(6, 0), pady=(2, 4), sticky="w")
 
     # ------------------------------------------------------------------
     # Recarregamento das tabelas
@@ -408,15 +399,18 @@ class ClienteDetalhe(ctk.CTkFrame):
         for w in self.scroll_itens.winfo_children():
             w.destroy()
 
+        # Cabeçalho dentro do scroll — alinhamento perfeito com as colunas
+        self._inserir_cabecalho(self.scroll_itens, COLS_CRED)
+
         itens = listar_itens(self.cliente_id)
         if not itens:
             ctk.CTkLabel(
                 self.scroll_itens, text="Nenhum item no crediário.",
                 font=ctk.CTkFont(size=12), text_color="#888888",
-            ).grid(row=0, column=0, columnspan=len(COLS_CRED) + 1, pady=14)
+            ).grid(row=1, column=0, columnspan=len(COLS_CRED), pady=14)
             return
 
-        for linha, item in enumerate(itens):
+        for linha, item in enumerate(itens, start=1):
             dados_cols = [
                 (f"#{item['id']:02d}",                  "#555555"),
                 (item["produto_nome"],                   "#1a1a1a"),
@@ -459,14 +453,17 @@ class ClienteDetalhe(ctk.CTkFrame):
         for w in self.scroll_pags.winfo_children():
             w.destroy()
 
+        # Cabeçalho dentro do scroll — alinhamento perfeito com as colunas
+        self._inserir_cabecalho(self.scroll_pags, COLS_PAG)
+
         pags = listar_pagamentos(self.cliente_id)
         if not pags:
             ctk.CTkLabel(
                 self.scroll_pags, text="Nenhum pagamento registrado.",
                 font=ctk.CTkFont(size=12), text_color="#888888",
-            ).grid(row=0, column=0, columnspan=len(COLS_PAG) + 1, pady=14)
+            ).grid(row=1, column=0, columnspan=len(COLS_PAG), pady=14)
         else:
-            for linha, pag in enumerate(pags):
+            for linha, pag in enumerate(pags, start=1):
                 dados_cols = [
                     (pag["data"],                   "#1a1a1a"),
                     (pag["tipo"],                   "#1a1a1a"),

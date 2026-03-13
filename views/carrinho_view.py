@@ -299,7 +299,7 @@ class CarrinhoView(ctk.CTkFrame):
         card = ctk.CTkFrame(pai, fg_color="white", corner_radius=12)
         card.grid(row=0, column=0, pady=(0, 8), sticky="nsew")
         card.grid_columnconfigure(0, weight=1)
-        card.grid_rowconfigure(4, weight=1)  # scroll expande
+        card.grid_rowconfigure(3, weight=1)  # scroll expande
 
         # Título
         ctk.CTkLabel(
@@ -360,14 +360,11 @@ class CarrinhoView(ctk.CTkFrame):
         )
         self.btn_pouco_est.grid(row=0, column=2)
 
-        # Cabeçalho fixo da tabela
-        self._criar_cabecalho_tabela(card, COLS_DISP, row=3)
-
-        # Área de rolagem dos produtos
+        # Área de rolagem dos produtos — cabeçalho renderizado dentro (row=0)
         self.scroll_produtos = ctk.CTkScrollableFrame(
             card, fg_color="white", corner_radius=0,
         )
-        self.scroll_produtos.grid(row=4, column=0, padx=8, pady=(0, 8), sticky="nsew")
+        self.scroll_produtos.grid(row=3, column=0, padx=8, pady=(0, 8), sticky="nsew")
         for i, (_, peso) in enumerate(COLS_DISP):
             self.scroll_produtos.grid_columnconfigure(i, weight=peso)
         # Coluna de Ações: largura fixa (ajuste minsize para testar)
@@ -382,7 +379,7 @@ class CarrinhoView(ctk.CTkFrame):
         card = ctk.CTkFrame(pai, fg_color="white", corner_radius=12)
         card.grid(row=1, column=0, sticky="nsew")
         card.grid_columnconfigure(0, weight=1)
-        card.grid_rowconfigure(2, weight=1)
+        card.grid_rowconfigure(1, weight=1)
 
         self.lbl_titulo_carr = ctk.CTkLabel(
             card, text="Itens no Carrinho (0)",
@@ -391,14 +388,11 @@ class CarrinhoView(ctk.CTkFrame):
         )
         self.lbl_titulo_carr.grid(row=0, column=0, padx=14, pady=(12, 6), sticky="w")
 
-        # Cabeçalho fixo da tabela
-        self._criar_cabecalho_tabela(card, COLS_CARR, row=1)
-
-        # Área de rolagem do carrinho
+        # Área de rolagem do carrinho — cabeçalho renderizado dentro (row=0)
         self.scroll_carrinho = ctk.CTkScrollableFrame(
             card, fg_color="white", corner_radius=0,
         )
-        self.scroll_carrinho.grid(row=2, column=0, padx=8, pady=(0, 8), sticky="nsew")
+        self.scroll_carrinho.grid(row=1, column=0, padx=8, pady=(0, 8), sticky="nsew")
         for i, (_, peso) in enumerate(COLS_CARR):
             self.scroll_carrinho.grid_columnconfigure(i, weight=peso)
         # Coluna de Ações: largura fixa (ajuste minsize para testar)
@@ -407,24 +401,17 @@ class CarrinhoView(ctk.CTkFrame):
         self._recarregar_carrinho()
 
     # ------------------------------------------------------------------
-    # Utilitário: cabeçalho de tabela fixo
+    # Utilitário: cabeçalho de tabela dentro do scroll (row=0)
     # ------------------------------------------------------------------
-    def _criar_cabecalho_tabela(self, pai, colunas: list, row: int):
-        cab = ctk.CTkFrame(pai, fg_color="#f0f0f0", corner_radius=0, height=28)
-        cab.grid(row=row, column=0, padx=8, sticky="ew")
-        cab.grid_propagate(False)
-        ultimo = len(colunas) - 1
-        for i, (rot, peso) in enumerate(colunas):
-            # Coluna de Ações: largura fixa — ajuste minsize=80 para testar
-            if i == ultimo:
-                cab.grid_columnconfigure(i, weight=0, minsize=80)
-            else:
-                cab.grid_columnconfigure(i, weight=peso)
+    def _inserir_cabecalho(self, scroll, colunas: list):
+        """Renderiza o cabeçalho como primeira linha do CTkScrollableFrame."""
+        for i, (rot, _) in enumerate(colunas):
             ctk.CTkLabel(
-                cab, text=rot,
+                scroll, text=rot,
                 font=ctk.CTkFont(size=11, weight="bold"),
                 text_color="#555555", anchor="w",
-            ).grid(row=0, column=i, padx=(6, 0), pady=2, sticky="ew")
+                fg_color="#f0f0f0",
+            ).grid(row=0, column=i, padx=(6, 0), pady=(2, 4), sticky="ew")
 
     # ------------------------------------------------------------------
     # Filtros e carregamento de produtos
@@ -489,15 +476,18 @@ class CarrinhoView(ctk.CTkFrame):
         for w in self.scroll_produtos.winfo_children():
             w.destroy()
 
+        # Cabeçalho dentro do scroll — alinhamento perfeito com as colunas
+        self._inserir_cabecalho(self.scroll_produtos, COLS_DISP)
+
         if not produtos:
             ctk.CTkLabel(
                 self.scroll_produtos,
                 text="Nenhum produto encontrado.",
                 font=ctk.CTkFont(size=12), text_color="#888888",
-            ).grid(row=0, column=0, columnspan=len(COLS_DISP) + 1, pady=14)
+            ).grid(row=1, column=0, columnspan=len(COLS_DISP), pady=14)
             return
 
-        for linha, p in enumerate(produtos):
+        for linha, p in enumerate(produtos, start=1):
             dados_cols = [
                 (f"#{p['id']:02d}",          "#555555"),
                 (p["nome"],                    "#1f6aa5"),
@@ -515,7 +505,7 @@ class CarrinhoView(ctk.CTkFrame):
                 self.scroll_produtos, text="+ Adic.", width=72, height=24,
                 font=ctk.CTkFont(size=11, weight="bold"),
                 command=lambda prod=p: self._adicionar_ao_carrinho(prod),
-            ).grid(row=linha, column=4, padx=(4, 4), pady=2)
+            ).grid(row=linha, column=len(COLS_DISP) - 1, padx=(4, 4), pady=2)
 
     def _atualizar_cores_filtro(self):
         """Aplica cor de destaque (escura) ao botão do filtro atualmente ativo."""
@@ -562,16 +552,20 @@ class CarrinhoView(ctk.CTkFrame):
         n = len(self._carrinho)
         self.lbl_titulo_carr.configure(text=f"Itens no Carrinho ({n})")
 
+        # Cabeçalho dentro do scroll — alinhamento perfeito com as colunas
+        self._inserir_cabecalho(self.scroll_carrinho, COLS_CARR)
+
         if not self._carrinho:
             ctk.CTkLabel(
                 self.scroll_carrinho, text="Nenhum item no carrinho.",
                 font=ctk.CTkFont(size=12), text_color="#888888",
-            ).grid(row=0, column=0, columnspan=len(COLS_CARR) + 1, pady=14)
+            ).grid(row=1, column=0, columnspan=len(COLS_CARR), pady=14)
             self._atualizar_resumo()
             self._toggle_resumo(False)
             return
 
-        for linha, item in enumerate(self._carrinho):
+        for idx, item in enumerate(self._carrinho):
+            linha = idx + 1
             dados_cols = [
                 (f"#{item['produto_id']:02d}", "#555555"),
                 (item["nome"],                  "#1f6aa5"),
@@ -593,13 +587,13 @@ class CarrinhoView(ctk.CTkFrame):
                 fa, text="✏️", width=34, height=26,
                 fg_color="#dbeafe", hover_color="#93c5fd",
                 font=ctk.CTkFont(size=13), text_color="#000000",
-                command=lambda i=linha: self._editar_item(i),
+                command=lambda i=idx: self._editar_item(i),
             ).grid(row=0, column=0, padx=(0, 2))
             ctk.CTkButton(
                 fa, text="🗑️", width=34, height=26,
                 fg_color="#fee2e2", hover_color="#fca5a5",
                 font=ctk.CTkFont(size=13), text_color="#000000",
-                command=lambda i=linha: self._remover_item(i),
+                command=lambda i=idx: self._remover_item(i),
             ).grid(row=0, column=1)
 
         self._atualizar_resumo()
