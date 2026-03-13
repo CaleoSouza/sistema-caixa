@@ -213,7 +213,7 @@ class CarrinhoView(ctk.CTkFrame):
         self._btn_sem_cadastro = ctk.CTkButton(
             cli_frame, text="Sem Cadastro", width=100, height=32,
             font=ctk.CTkFont(size=11, weight="bold"),
-            fg_color="#888888", hover_color="#666666",
+            fg_color="#2e7d32", hover_color="#1b5e20",
             command=self._remover_cliente,
         )
         self._btn_sem_cadastro.grid(row=0, column=1)
@@ -721,6 +721,7 @@ class CarrinhoView(ctk.CTkFrame):
         self._fechar_dropdown_cliente()
         self.lbl_cli_nome.configure(text=f"\ud83d\udc64  {cliente['nome']}")
         self.frame_cli_sel.grid()
+        self._atualizar_cor_sem_cadastro()
         # Atualiza aviso de prazo sem cliente, se n\u00e3o houver mais
         if self._forma_pagamento == "a_prazo":
             self._mostrar_painel_pagamento()
@@ -730,8 +731,19 @@ class CarrinhoView(ctk.CTkFrame):
         self._cliente_selecionado = None
         self.entry_cliente_busca.delete(0, "end")
         self.frame_cli_sel.grid_remove()
+        self._atualizar_cor_sem_cadastro()
         if self._forma_pagamento == "a_prazo":
             self._mostrar_painel_pagamento()
+
+    def _atualizar_cor_sem_cadastro(self):
+        """Verde quando nenhum cliente est\u00e1 selecionado (estado ativo), cinza caso contr\u00e1rio."""
+        if not hasattr(self, "_btn_sem_cadastro"):
+            return
+        sem_cliente = (self._cliente_selecionado is None)
+        self._btn_sem_cadastro.configure(
+            fg_color="#2e7d32" if sem_cliente else "#888888",
+            hover_color="#1b5e20" if sem_cliente else "#666666",
+        )
 
     # ------------------------------------------------------------------
     # Fase 2: forma de pagamento
@@ -749,8 +761,8 @@ class CarrinhoView(ctk.CTkFrame):
         for chave, btn in self._btns_forma.items():
             ativo = (chave == self._forma_pagamento)
             btn.configure(
-                fg_color="#1f6aa5" if ativo else "#3a9adf",
-                hover_color="#104a85" if ativo else "#2a7abf",
+                fg_color="#2e7d32" if ativo else "#3a9adf",
+                hover_color="#1b5e20" if ativo else "#2a7abf",
             )
 
     def _mostrar_painel_pagamento(self):
@@ -990,12 +1002,12 @@ class CarrinhoView(ctk.CTkFrame):
             return
         debito_ativo = (self._tipo_cartao == "debito")
         self.btn_debito.configure(
-            fg_color="#1f6aa5" if debito_ativo else "#3a9adf",
-            hover_color="#104a85" if debito_ativo else "#2a7abf",
+            fg_color="#2e7d32" if debito_ativo else "#3a9adf",
+            hover_color="#1b5e20" if debito_ativo else "#2a7abf",
         )
         self.btn_credito.configure(
-            fg_color="#3a9adf" if debito_ativo else "#1f6aa5",
-            hover_color="#2a7abf" if debito_ativo else "#104a85",
+            fg_color="#3a9adf" if debito_ativo else "#2e7d32",
+            hover_color="#2a7abf" if debito_ativo else "#1b5e20",
         )
 
     def _selecionar_parcelas(self, valor: str):
@@ -1058,6 +1070,7 @@ class CarrinhoView(ctk.CTkFrame):
         self.entry_cliente_busca.delete(0, "end")
         self._recarregar_carrinho()
         self._atualizar_cores_forma()
+        self._atualizar_cor_sem_cadastro()
         self._mostrar_painel_pagamento()
 
         # Troca botão Limpar → Imprimir Recibo
