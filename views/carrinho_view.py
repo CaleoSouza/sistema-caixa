@@ -684,11 +684,13 @@ class CarrinhoView(ctk.CTkFrame):
         h  = min(len(clientes[:8]) * 36 + 4, 180)
 
         # Frame interno: fica dentro da própria janela, sem problemas de z-order do SO
+        # CTkFrame exige width/height no construtor, não no place()
         dd = ctk.CTkFrame(
             self, fg_color="white", corner_radius=6,
             border_width=1, border_color="#cccccc",
+            width=w, height=h,
         )
-        dd.place(x=ex, y=ey, width=w, height=h)
+        dd.place(x=ex, y=ey)
         dd.lift()   # garante que fica acima de todos os widgets irmãos
 
         scroll = ctk.CTkScrollableFrame(dd, fg_color="white")
