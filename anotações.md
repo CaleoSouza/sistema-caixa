@@ -312,7 +312,30 @@ Repositório: https://github.com/CaleoSouza/sistema-caixa
       - Filtros: busca em tempo real + seletor de mês
       - Status colorido: pago=#2e7d32 | agendado=#d97706 | em_aberto=#e53935
       - Painel direito: 4 cards (Total do Mês, Agendado, Em Aberto, Pago) com seletores individuais de mês
+      - Painel direito convertido para CTkScrollableFrame (scroll em telas menores)
 - [x] `main.py` — DespesasView importada e botão "💸 Despesas" adicionado à sidebar
+
+### Etapa 5b - Despesas Automáticas (concluída em 13/03/2026)
+- [x] `database.py` — nova tabela `despesas_automaticas`: id, descricao, dia_mes, responsavel, valor, forma_pagamento, criado_em
+      - Migração: coluna `auto_origem_id` adicionada à tabela `despesas` para rastrear origem automática
+- [x] `models/despesa_model.py` — CRUD automático:
+      - listar_despesas_auto(), buscar_auto_por_id(), inserir_despesa_auto(), atualizar_despesa_auto(), excluir_despesa_auto()
+      - gerar_despesas_mes(mes, ano): insere despesas na tabela principal se ainda não existir no mês (anti-duplicata via auto_origem_id)
+      - Ajusta dia para não ultrapassar o último dia do mês (ex: dia 31 em fevereiro vira dia 28)
+- [x] `controllers/despesa_controller.py` — funções auto:
+      - obter_lista_auto(), obter_auto_por_id(), salvar_auto(), remover_auto()
+      - gerar_despesas_mes_atual(): chama gerar_despesas_mes com mês/ano atual
+- [x] `views/despesa_auto_form.py` — novo CTkToplevel modal 420×460:
+      - Título: "Nova Despesa Automática" / "Editar Despesa Automática"
+      - Campo "Dia (1-31) — todo mês" no lugar de data completa
+      - Campos: Descrição, Dia do mês, Responsável, Valor, Forma de Pagamento
+      - Aviso informativo: "Esta despesa será lançada automaticamente todo mês"
+- [x] `views/despesas_view.py` — card "Despesas Automáticas (fixas)" no painel direito:
+      - Botão "+ Criar Novo" abre DespesaAutoForm
+      - Mini-tabela com CTkScrollableFrame (Descrição | Valor | Ações ✏️🗑️)
+      - Ao abrir a tela: gera automaticamente os lançamentos do mês atual que ainda não existem
+      - Ao salvar nova auto: regenera o mês atual e recarrega tabela + cards
+- [x] Fix: `AttributeError _criar_card_automaticas` — métodos ausentes por falha de replace; corrigidos na mesma sessão
 
 ### Etapa 6 - Relatórios / Fase 1 (concluída em 12/03/2026)
 - [x] `views/relatorios_view.py` — tela criada com 2 cards:

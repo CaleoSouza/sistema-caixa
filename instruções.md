@@ -43,22 +43,23 @@ Sistema Caixa/
 │   ├── pagamento_form.py        # ✅ Popup CTkToplevel para registrar/editar pagamento
 │   ├── carrinho_view.py         # ✅ Carrinho completo — Fase 1+2 (11/03/2026)
 │   ├── despesa_form.py          # ✅ Popup modal para adicionar/editar despesa (Etapa 5)
-│   ├── despesas_view.py         # ✅ Tela completa de Despesas (Etapa 5)
-   ├── relatorios_view.py       # ✅ Fase 1 completa — cards Fechamento do Dia e do Mês (Etapa 6)
+│   ├── despesa_auto_form.py     # ✅ Popup modal para despesas automáticas fixas (Etapa 5b)
+│   ├── despesas_view.py         # ✅ Tela completa + card Despesas Automáticas + scroll (Etapa 5b)
+│   ├── relatorios_view.py       # ✅ Fase 1 completa — cards Fechamento do Dia e do Mês (Etapa 6)
 │   └── configuracoes_view.py    # (Etapa 7 - pendente)
 │
 ├── controllers/                 # Lógica de negócio
 │   ├── produto_controller.py    # CRUD produtos, EAN-13, status estoque, imagens
 │   ├── cliente_controller.py    # ✅ CRUD clientes, status crediário, imagens (Etapa 3)
 │   ├── venda_controller.py      # ✅ finalizar_venda + baixa estoque + crediário (Etapa 4)
-│   └── despesa_controller.py    # ✅ obter_lista, salvar, remover, obter_resumo (Etapa 5)
+│   └── despesa_controller.py    # ✅ CRUD + auto: obter_lista_auto, salvar_auto, gerar_despesas_mes_atual (Etapa 5b)
 │
 ├── models/                      # Consultas ao banco de dados
 │   ├── produto_model.py         # SQL produtos: listar, filtros, resumo, estoque baixo, próx. vencer
 │   ├── cliente_model.py         # ✅ SQL clientes: listar, filtros, resumo, em atraso (Etapa 3)
 │   ├── crediario_model.py       # ✅ CRUD crediario_itens + historico_pagamentos + calcular_saldo
 │   ├── venda_model.py           # ✅ CRUD vendas + itens_venda + totais do dia (Etapa 4)
-│   └── despesa_model.py         # ✅ CRUD despesas + resumo_por_mes (Etapa 5)
+│   └── despesa_model.py         # ✅ CRUD despesas + CRUD automáticas + gerar_despesas_mes (Etapa 5b)
 │
 ├── imagens/                     # Imagens do sistema
 │   ├── produtos/                # Fotos de upload dos produtos
