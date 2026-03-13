@@ -675,16 +675,35 @@ class CarrinhoView(ctk.CTkFrame):
         if not clientes:
             return
 
-        entry = self.entry_cliente_busca
-        x = entry.winfo_rootx()
-        y = entry.winfo_rooty() + entry.winfo_height() + 2
-        w = entry.winfo_width()
-        h = min(len(clientes) * 34, 170)
+    def _buscar_cliente(self, event=None):
+        """Abre dropdown com sugestões de cliente a partir de 3 caracteres."""
+        texto = self.entry_cliente_busca.get().strip()
 
-        dd = ctk.CTkToplevel(self)
-        dd.wm_overrideredirect(True)
-        dd.geometry(f"{w}x{h}+{x}+{y}")
-        dd.lift()
+        # Fecha dropdown anterior
+        self._fechar_dropdown_cliente()
+
+        if len(texto) < 3:
+            return
+
+        clientes = listar_clientes(texto)
+        if not clientes:
+            return
+
+        entry = self.entry_cliente_busca
+
+        # Posição relativa ao CarrinhoView (self) para usar place()
+        ex = entry.winfo_rootx() - self.winfo_rootx()
+        ey = entry.winfo_rooty() - self.winfo_rooty() + entry.winfo_height() + 2
+        w  = entry.winfo_width()
+        h  = min(len(clientes[:8]) * 36 + 4, 180)
+
+        # Frame interno: fica dentro da própria janela, sem problemas de z-order do SO
+        dd = ctk.CTkFrame(
+            self, fg_color="white", corner_radius=6,
+            border_width=1, border_color="#cccccc",
+        )
+        dd.place(x=ex, y=ey, width=w, height=h)
+        dd.lift()   # garante que fica acima de todos os widgets irmãos
 
         scroll = ctk.CTkScrollableFrame(dd, fg_color="white")
         scroll.pack(fill="both", expand=True)
@@ -708,7 +727,8 @@ class CarrinhoView(ctk.CTkFrame):
         """Fecha o dropdown de sugest\u00f5es de cliente."""
         if self._dropdown_cliente and self._dropdown_cliente.winfo_exists():
             self._dropdown_cliente.destroy()
-        self._dropdown_cliente = None
+            self._dropdown_cliente.place_forget()
+            self._dropdown_cliente.destroy()
 
     def _selecionar_cliente(self, cliente: dict):
         """Fixa o cliente e exibe a faixa de confirma\u00e7\u00e3o."""
