@@ -247,6 +247,101 @@ class DespesasView(ctk.CTkFrame):
         self._atualizar_todos_cards()
 
     # ------------------------------------------------------------------
+    # Card Despesas Automáticas (fixas)
+    # ------------------------------------------------------------------
+    def _criar_card_automaticas(self, painel, linha: int):
+        """Cria o card de despesas automáticas com mini-tabela."""
+        card = ctk.CTkFrame(painel, fg_color="white", corner_radius=12)
+        card.grid(row=linha, column=0, pady=(0, 10), sticky="ew")
+        card.grid_columnconfigure(0, weight=1)
+
+        # Cabeçalho do card
+        cab = ctk.CTkFrame(card, fg_color="transparent")
+        cab.grid(row=0, column=0, padx=14, pady=(12, 4), sticky="ew")
+        cab.grid_columnconfigure(0, weight=1)
+
+        ctk.CTkLabel(
+            cab, text="Despesas Automáticas (fixas)",
+            font=ctk.CTkFont(size=12, weight="bold"),
+            text_color="#1a1a1a", anchor="w",
+        ).grid(row=0, column=0, sticky="w")
+
+        ctk.CTkButton(
+            cab, text="+ Criar Novo", width=90, height=26,
+            font=ctk.CTkFont(size=11, weight="bold"),
+            command=self._nova_auto,
+        ).grid(row=0, column=1, sticky="e")
+
+        ctk.CTkLabel(
+            card, text="Lista de acesso rápido de despesas.",
+            font=ctk.CTkFont(size=11),
+            text_color="#888888", anchor="w",
+        ).grid(row=1, column=0, padx=14, pady=(0, 6), sticky="w")
+
+        # Área de rolagem para a mini-tabela
+        self._scroll_auto = ctk.CTkScrollableFrame(
+            card, fg_color="white", corner_radius=0, height=130,
+        )
+        self._scroll_auto.grid(row=2, column=0, padx=8, pady=(0, 10), sticky="ew")
+        self._scroll_auto.grid_columnconfigure(0, weight=1)
+        self._scroll_auto.grid_columnconfigure(1, weight=0, minsize=80)
+        self._scroll_auto.grid_columnconfigure(2, weight=0, minsize=64)
+
+        self._carregar_lista_auto()
+
+    def _carregar_lista_auto(self):
+        """Recarrega a mini-tabela de despesas automáticas."""
+        for w in self._scroll_auto.winfo_children():
+            w.destroy()
+
+        autos = obter_lista_auto()
+
+        # Cabeçalho da mini-tabela
+        for col, (rot, ancora) in enumerate([("Descrição", "w"), ("Valor", "e"), ("Ações", "center")]):
+            ctk.CTkLabel(
+                self._scroll_auto, text=rot,
+                font=ctk.CTkFont(size=10, weight="bold"),
+                text_color="#888888", anchor=ancora,
+            ).grid(row=0, column=col, padx=(6, 2), pady=(0, 4), sticky="ew")
+
+        if not autos:
+            ctk.CTkLabel(
+                self._scroll_auto, text="Nenhuma despesa automática cadastrada.",
+                font=ctk.CTkFont(size=11), text_color="#aaaaaa",
+            ).grid(row=1, column=0, columnspan=3, pady=8)
+            return
+
+        for i, a in enumerate(autos, start=1):
+            ctk.CTkLabel(
+                self._scroll_auto, text=a["descricao"],
+                font=ctk.CTkFont(size=11),
+                text_color="#1a1a1a", anchor="w",
+            ).grid(row=i, column=0, padx=(6, 2), pady=2, sticky="ew")
+
+            ctk.CTkLabel(
+                self._scroll_auto, text=formatar_moeda(a["valor"]),
+                font=ctk.CTkFont(size=11),
+                text_color="#1a1a1a", anchor="e",
+            ).grid(row=i, column=1, padx=(0, 4), pady=2, sticky="ew")
+
+            fa = ctk.CTkFrame(self._scroll_auto, fg_color="transparent")
+            fa.grid(row=i, column=2, pady=2)
+
+            ctk.CTkButton(
+                fa, text="✏️", width=28, height=24,
+                fg_color="#dbeafe", hover_color="#93c5fd",
+                text_color="#000000", font=ctk.CTkFont(size=11),
+                command=lambda aid=a["id"]: self._editar_auto(aid),
+            ).grid(row=0, column=0, padx=(0, 2))
+
+            ctk.CTkButton(
+                fa, text="🗑️", width=28, height=24,
+                fg_color="#fee2e2", hover_color="#fca5a5",
+                text_color="#000000", font=ctk.CTkFont(size=11),
+                command=lambda aid=a["id"]: self._excluir_auto(aid),
+            ).grid(row=0, column=1)
+
+    # ------------------------------------------------------------------
     # Carregar / recarregar tabela
     # ------------------------------------------------------------------
     def _carregar_tabela(self):
