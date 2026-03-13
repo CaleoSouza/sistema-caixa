@@ -5,6 +5,7 @@ Painel direito: Resumo do Pedido (implementado na Etapa 4 — Fase 2).
 """
 
 import logging
+import tkinter as tk
 import customtkinter as ctk
 from tkinter import messagebox
 
@@ -677,23 +678,18 @@ class CarrinhoView(ctk.CTkFrame):
 
         entry = self.entry_cliente_busca
 
-        # Coordenadas absolutas de tela da entry
-        w  = entry.winfo_width()
-        h  = min(len(clientes[:8]) * 36 + 4, 180)
+        # Coordenadas absolutas de tela — posiciona exatamente sob o campo de busca
+        x = entry.winfo_rootx()
+        y = entry.winfo_rooty() + entry.winfo_height() + 2
+        w = entry.winfo_width()
+        h = min(len(clientes[:8]) * 36 + 6, 180)
 
-        # Usa a janela raiz como pai para evitar distorções do CTkScrollableFrame
-        root = self.winfo_toplevel()
-        ex = entry.winfo_rootx() - root.winfo_rootx()
-        ey = entry.winfo_rooty() - root.winfo_rooty() + entry.winfo_height() + 2
-
-        # CTkFrame exige width/height no construtor, não no place()
-        dd = ctk.CTkFrame(
-            root, fg_color="white", corner_radius=6,
-            border_width=1, border_color="#cccccc",
-            width=w, height=h,
-        )
-        dd.place(x=ex, y=ey)
-        dd.lift()   # garante que fica acima de todos os widgets
+        # tk.Toplevel puro: sem decoração, sem os problemas de z-order do CTkToplevel
+        dd = tk.Toplevel(self)
+        dd.wm_overrideredirect(True)
+        dd.geometry(f"{w}x{h}+{x}+{y}")
+        dd.lift()
+        dd.attributes("-topmost", True)
 
         scroll = ctk.CTkScrollableFrame(dd, fg_color="white")
         scroll.pack(fill="both", expand=True)
@@ -716,7 +712,6 @@ class CarrinhoView(ctk.CTkFrame):
     def _fechar_dropdown_cliente(self):
         """Fecha o dropdown de sugest\u00f5es de cliente."""
         if self._dropdown_cliente and self._dropdown_cliente.winfo_exists():
-            self._dropdown_cliente.place_forget()
             self._dropdown_cliente.destroy()
 
     def _selecionar_cliente(self, cliente: dict):
