@@ -103,6 +103,8 @@ Etapa 4 - Carrinho ✅ (concluída em 11/03/2026)
   - Arquivos: views/carrinho_view.py, controllers/venda_controller.py, models/venda_model.py
   - REGRA: crediario_model.inserir_item() DEVE ser chamado em conexão separada (após commit+close do estoque)
   - Taxas cartão são internas (referência do vendedor); NÃO afetam o total_final do cliente
+  - REGRA DROPDOWN CLIENTE: usar `tk.Toplevel` puro (NÃO `CTkToplevel` nem `CTkFrame`) com `wm_overrideredirect(True)` e coordenadas absolutas via `winfo_rootx()/winfo_rooty()` + `attributes("-topmost", True)`. `CTkFrame+place()` rejeita width/height (devem ir no construtor). `CTkToplevel` tem problemas de z-order.
+  - REGRA ESTOQUE: status fixo por quantidade — 0=sem_estoque | 1-4=estoque_baixo | 5-25=em_estoque | 26+=estoque_alto (campo estoque_minimo ignorado)
   
 Etapa 5 - Despesas ✅ (concluída em 12/03/2026)
   - Registrar despesas da empresa (aluguel, fornecedores, contas, etc.)

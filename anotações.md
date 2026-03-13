@@ -202,6 +202,51 @@ Repositório: https://github.com/CaleoSouza/sistema-caixa
       - Removido `fa.grid_columnconfigure((0,1), weight=1)` que os forçava a esticar
 - [x] Fix cantos arredondados do painel direito: CTkScrollableFrame com `corner_radius=12` e `padx=2, pady=(2,0)`
 
+### Sessão 13/03/2026 — Correções e Melhorias
+
+#### Fix: Card Crediário na Home (home_view.py)
+- [x] `_obter_resumo()` usava SQL inline `debito_atual > 0` (retornava 10 — todos com débito)
+- [x] Corrigido: usa `resumo_clientes().get("em_atraso", 0)` com regra dos 30 dias → retorna valor correto
+- [x] Card "Estoque Baixo" também corrigido para usar `resumo_produtos().get("estoque_baixo", 0)` em vez de SQL inline
+- Commit: e2f7215
+
+#### Fix: Flag tem_crediario não ativado ao adicionar +Item (crediario_model.py)
+- [x] `_sincronizar_debito()` não setava `tem_crediario=1` ao inserir primeiro item de cliente com flag=0
+- [x] Corrigido: usa `CASE WHEN EXISTS(SELECT 1 FROM crediario_itens WHERE cliente_id=?) THEN 1 ELSE tem_crediario END`
+- [x] Clientes criados com `tem_crediario=0` agora ativam o flag automaticamente ao receber o primeiro item
+- Commit: 611251a
+
+#### Seed: 15 novos clientes de teste (total: 35 clientes)
+- [x] 5 sem crediário: Rafael, Sabrina, Thiago, Úrsula, Vinícius (IDs 16–20)
+- [x] 5 em dia (item 03/03/2026 — 10 dias): Wesley, Ximena, Yago, Zélia, Anderson (IDs 21–25)
+- [x] 5 em atraso (item 01/02/2026 — 40 dias): Beatriz, Cláudio, Daniela, Eduardo, Fabiana (IDs 26–30)
+- Resultado final: 35 clientes | 16 em dia | 10 em atraso
+
+#### Feat: Bloqueio de CPF duplicado (database.py + cliente_model.py + cliente_controller.py)
+- [x] Índice UNIQUE parcial no SQLite: `CREATE UNIQUE INDEX idx_clientes_cpf_unico ON clientes(cpf) WHERE cpf IS NOT NULL AND cpf != ''`
+- [x] `buscar_por_cpf(cpf, excluir_id=None)` adicionada ao model — exclui próprio ID no modo edição
+- [x] `_validar()` do controller verifica CPF antes de salvar; mensagem exibe nome + ID do cliente existente
+- [x] 5 CPFs duplicados removidos do banco de dados
+- Commit: d671a73
+
+#### Feat: Regras fixas de estoque (produto_controller.py + produto_model.py)
+- [x] `_calcular_status()` — lógica nova sem `estoque_minimo` dinâmico:
+      0 → `sem_estoque` | 1–4 → `estoque_baixo` | 5–25 → `em_estoque` | 26+ → `estoque_alto`
+- [x] `listar_estoque_baixo()` e `resumo_produtos()` atualizados: `WHERE quantidade <= 4` (inclui sem estoque)
+- [x] Card "Estoque Baixo" na Home soma sem_estoque + estoque_baixo via `resumo_produtos()`
+- Commit: 8cb1fa5
+
+#### Fix: Dropdown busca cliente no Carrinho (carrinho_view.py)
+- [x] Bug: dropdown aparecia abaixo dos botões de pagamento ao digitar mais de 3 letras
+- [x] Tentativa 1 — `CTkToplevel` + `overrideredirect`: z-order instável, janela desaparecia
+- [x] Tentativa 2 — `CTkFrame` + `place()`: `ValueError` — CTkFrame não aceita width/height no `place()` (devem ir no construtor)
+- [x] Tentativa 3 — frame com parent root + `place()`: offset errado causado pelo `CTkScrollableFrame`
+- [x] Solução final: `tk.Toplevel` puro + `wm_overrideredirect(True)` + coordenadas absolutas via `winfo_rootx()/winfo_rooty()` + `attributes("-topmost", True)`
+- [x] `import tkinter as tk` adicionado ao topo do arquivo
+- Commits: b0084f2, 130880d, 975f3e1, c371c2d, 9354c88
+
+--------------------
+
 ### Etapa 5 - Despesas (concluída em 12/03/2026)
 - [x] `database.py` — tabela `despesas` adicionada (id, descricao, data, responsavel, valor, forma_pagamento, status, criado_em)
 - [x] `models/despesa_model.py` — CRUD completo:
