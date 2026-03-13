@@ -198,7 +198,7 @@ class DespesasView(ctk.CTkFrame):
     # Painel direito: 4 cards de totais
     # ------------------------------------------------------------------
     def _criar_painel_direito(self):
-        painel = ctk.CTkFrame(self, fg_color="transparent")
+        painel = ctk.CTkScrollableFrame(self, fg_color="#e8e8e8", corner_radius=0)
         painel.grid(row=1, column=1, padx=(0, 16), pady=(0, 16), sticky="nsew")
         painel.grid_columnconfigure(0, weight=1)
 
