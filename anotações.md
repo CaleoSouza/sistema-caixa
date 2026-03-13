@@ -336,6 +336,15 @@ Repositório: https://github.com/CaleoSouza/sistema-caixa
       - Ao abrir a tela: gera automaticamente os lançamentos do mês atual que ainda não existem
       - Ao salvar nova auto: regenera o mês atual e recarrega tabela + cards
 - [x] Fix: `AttributeError _criar_card_automaticas` — métodos ausentes por falha de replace; corrigidos na mesma sessão
+- [x] Fix: alinhamento de colunas na tabela de despesas — cabeçalho movido para dentro do CTkScrollableFrame (row=0), dados a partir de row=1; elimina desalinhamento causado pela scrollbar interna (~16px)
+
+### Etapa 5c - Refatoração de tabelas — todas as views (concluída em 13/03/2026)
+- [x] Padrão aplicado a TODAS as tabelas do sistema: cabeçalho renderizado dentro do `CTkScrollableFrame` como row=0, dados a partir de `enumerate(..., start=1)`
+- [x] `views/produtos_view.py`: removido frame `cabecalho` separado; `grid_rowconfigure(2)` → `(1)`, scroll passa para row=1; cabeçalho adicionado em `carregar_produtos()` com `fg_color="#f0f0f0"`
+- [x] `views/clientes_view.py`: mesma mudança que produtos_view
+- [x] `views/carrinho_view.py`: `_criar_cabecalho_tabela()` substituído por `_inserir_cabecalho(scroll, colunas)` que renderiza dentro do scroll; `card.grid_rowconfigure(4→3)` em card_produtos, `(2→1)` em card_carrinho; scrolls movidos uma row acima; lambdas do carrinho usam `idx` (0-based) para indexar `self._carrinho`
+- [x] `views/cliente_detalhe.py`: mesmo padrão; `_criar_cabecalho_tabela()` substituído por `_inserir_cabecalho(scroll, colunas)`; `card.grid_rowconfigure(2→1)` em ambos os cards; separador/saldo ajustados de row=3,4 para row=2,3
+- [x] Commit: `d9a04fb`
 
 ### Etapa 6 - Relatórios / Fase 1 (concluída em 12/03/2026)
 - [x] `views/relatorios_view.py` — tela criada com 2 cards:
