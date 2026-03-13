@@ -11,13 +11,26 @@ from database import conectar
 # ------------------------------------------------------------------
 
 def listar_em_atraso() -> list:
-    """Retorna clientes ativos com crediário e débito pendente."""
+    """
+    Retorna clientes ativos com crediário cujo débito está pendente há mais de 30 dias.
+    Somente considera 'em atraso' itens anotados há mais de 30 dias.
+    """
     conn = conectar()
     rows = conn.execute(
         """SELECT id, nome, cpf, telefone, email, cidade, endereco,
                   foto, tem_crediario, limite_credito, debito_atual
            FROM clientes
-           WHERE ativo = 1 AND tem_crediario = 1 AND debito_atual > 0
+           WHERE ativo = 1
+             AND tem_crediario = 1
+             AND debito_atual > 0
+             AND EXISTS (
+               SELECT 1 FROM crediario_itens ci
+               WHERE ci.cliente_id = clientes.id
+                 AND (
+                   substr(ci.data,7,4)||'-'||substr(ci.data,4,2)||'-'||substr(ci.data,1,2)
+                   < date('now', '-30 days')
+                 )
+             )
            ORDER BY debito_atual DESC""",
     ).fetchall()
     conn.close()
@@ -75,14 +88,38 @@ def resumo_clientes() -> dict:
         "SELECT COUNT(*) FROM clientes WHERE ativo = 1"
     ).fetchone()[0]
 
-    em_dia = conn.execute(
-        """SELECT COUNT(*) FROM clientes
-           WHERE ativo = 1 AND tem_crediario = 1 AND debito_atual = 0"""
-    ).fetchone()[0]
-
+    # Em atraso: tem débito E possui item anotado há mais de 30 dias
     em_atraso = conn.execute(
         """SELECT COUNT(*) FROM clientes
-           WHERE ativo = 1 AND tem_crediario = 1 AND debito_atual > 0"""
+           WHERE ativo = 1
+             AND tem_crediario = 1
+             AND debito_atual > 0
+             AND EXISTS (
+               SELECT 1 FROM crediario_itens ci
+               WHERE ci.cliente_id = clientes.id
+                 AND (
+                   substr(ci.data,7,4)||'-'||substr(ci.data,4,2)||'-'||substr(ci.data,1,2)
+                   < date('now', '-30 days')
+                 )
+             )"""
+    ).fetchone()[0]
+
+    # Em dia: tem crediário mas não se enquadra em atraso
+    em_dia = conn.execute(
+        """SELECT COUNT(*) FROM clientes
+           WHERE ativo = 1
+             AND tem_crediario = 1
+             AND (
+               debito_atual = 0
+               OR NOT EXISTS (
+                 SELECT 1 FROM crediario_itens ci
+                 WHERE ci.cliente_id = clientes.id
+                   AND (
+                     substr(ci.data,7,4)||'-'||substr(ci.data,4,2)||'-'||substr(ci.data,1,2)
+                     < date('now', '-30 days')
+                   )
+               )
+             )"""
     ).fetchone()[0]
 
     conn.close()

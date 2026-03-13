@@ -137,10 +137,18 @@ def _calcular_status(cliente: dict) -> str:
     """
     Retorna o status de crédito do cliente:
     'sem_debitos' | 'em_dia' | 'em_atraso'
+
+    Regra: somente considera 'em_atraso' se o cliente tiver débito E
+    pelo menos um item anotado há mais de 30 dias sem quitação.
+    Itens anotados há <= 30 dias ficam como 'em_dia'.
     """
     if not cliente.get("tem_crediario"):
         return "sem_debitos"
-    if (cliente.get("debito_atual") or 0) > 0:
+    if (cliente.get("debito_atual") or 0) <= 0:
+        return "em_dia"
+    # Tem débito — verifica se algum item tem mais de 30 dias
+    from models.crediario_model import tem_debito_em_atraso
+    if tem_debito_em_atraso(cliente["id"]):
         return "em_atraso"
     return "em_dia"
 

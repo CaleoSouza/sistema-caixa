@@ -165,6 +165,28 @@ def calcular_saldo(cliente_id: int) -> float:
     return max(0.0, float(total_itens) - float(total_pags))
 
 
+def tem_debito_em_atraso(cliente_id: int) -> bool:
+    """
+    Retorna True se o cliente tem algum item no crediário cuja data
+    é anterior a 30 dias atrás — critério para considerar 'em atraso'.
+    A data é armazenada como DD/MM/AAAA.
+    """
+    conn = conectar()
+    row = conn.execute(
+        """SELECT 1
+           FROM crediario_itens
+           WHERE cliente_id = ?
+             AND (
+               substr(data,7,4)||'-'||substr(data,4,2)||'-'||substr(data,1,2)
+               < date('now', '-30 days')
+             )
+           LIMIT 1""",
+        (cliente_id,),
+    ).fetchone()
+    conn.close()
+    return row is not None
+
+
 def _sincronizar_debito(cliente_id: int):
     """Atualiza debito_atual na tabela clientes com o saldo calculado."""
     saldo = calcular_saldo(cliente_id)
