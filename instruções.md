@@ -46,20 +46,20 @@ Sistema Caixa/
 │   ├── despesa_form.py          # ✅ Popup modal para adicionar/editar despesa (Etapa 5)
 │   ├── despesa_auto_form.py     # ✅ Popup modal para despesas automáticas fixas (Etapa 5b)
 │   ├── despesas_view.py         # ✅ Tela completa + card Despesas Automáticas + scroll (Etapa 5b)
-│   ├── relatorios_view.py       # ✅ Fase 1 completa — cards Fechamento do Dia e do Mês (Etapa 6)
+│   ├── relatorios_view.py       # ✅ Fase 1+2 completas — cards + Fechamento do Dia completo (Etapa 6)
 │   └── configuracoes_view.py    # (Etapa 7 - pendente)
 │
 ├── controllers/                 # Lógica de negócio
 │   ├── produto_controller.py    # CRUD produtos, EAN-13, status estoque, imagens
 │   ├── cliente_controller.py    # ✅ CRUD clientes, status crediário, imagens (Etapa 3)
-│   ├── venda_controller.py      # ✅ finalizar_venda + baixa estoque + crediário (Etapa 4)
+│   ├── venda_controller.py      # ✅ finalizar_venda + baixa estoque + crediário + nome_avulso (Etapa 4)
 │   └── despesa_controller.py    # ✅ CRUD + auto: obter_lista_auto, salvar_auto, gerar_despesas_mes_atual (Etapa 5b)
 │
 ├── models/                      # Consultas ao banco de dados
 │   ├── produto_model.py         # SQL produtos: listar, filtros, resumo, estoque baixo, próx. vencer
 │   ├── cliente_model.py         # ✅ SQL clientes: listar, filtros, resumo, em atraso (Etapa 3)
 │   ├── crediario_model.py       # ✅ CRUD crediario_itens + historico_pagamentos + calcular_saldo
-│   ├── venda_model.py           # ✅ CRUD vendas + itens_venda + totais do dia (Etapa 4)
+│   ├── venda_model.py           # ✅ CRUD vendas + itens_venda + totais do dia + nome_avulso (Etapa 4)
 │   └── despesa_model.py         # ✅ CRUD despesas + CRUD automáticas + gerar_despesas_mes (Etapa 5b)
 │
 ├── imagens/                     # Imagens do sistema
@@ -112,9 +112,16 @@ Etapa 5 - Despesas ✅ (concluída em 12/03/2026)
   - Listagem com filtros por data e categoria
   - Relatório de despesas
 
-Etapa 6 - Relatórios ✅ Fase 1 (concluída em 12/03/2026)
-  - Fase 1: cards Fechamento do Dia (tkcalendar DateEntry) e Fechamento do Mês (CTkOptionMenu + CVtEntry ano) com Resumo Rápido
-  - Fase 2 (pendente): tabelas detalhadas de vendas por dia e por mês
+Etapa 6 - Relatórios ✅ Fase 1+2 (concluída em 13/03/2026)
+  - Fase 1: cards Fechamento do Dia (tkcalendar DateEntry) e Fechamento do Mês (CTkOptionMenu + CTkEntry ano) com Resumo Rápido
+  - Fase 2 — Fechamento do Dia completo:
+    * 9 cards financeiros em 2 linhas: Dinheiro | Cartão(líquido) | Despesas Pagas(Dinheiro) | Despesas Dia(total) | Erro de Caixa | PIX | À Prazo | Saldo Líquido Caixa | Saldo Total | Saldo Total Líquido (card verde destaque)
+    * Tabela cronológica com cabeçalho fixo + CTkScrollableFrame para linhas (height=280)
+    * Itens de venda (preto) e despesas do dia (vermelho) misturados cronologicamente
+    * Ações ✏️🗑️ por linha: editar item de venda (popup qty+preço) ou despesa (DespesaForm); excluir restaura estoque
+    * Botão ← Voltar e 🖨 Imprimir (stub)
+  - REGRA nome_avulso: vendas sem cliente cadastrado salvam nome_avulso TEXT na tabela vendas (carrinho passa quando _modo_sem_cadastro=True); listar_vendas usa COALESCE(nome_avulso, c.nome, 'Sem Cadastro')
+  - Fase 3 (pendente): Fechamento do Mês com tabela detalhada
 
 Etapa 7 - Configurações
   - Backup do banco de dados

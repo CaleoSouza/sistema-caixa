@@ -400,7 +400,7 @@ Repositório: https://github.com/CaleoSouza/sistema-caixa
       - tkcalendar 1.6.1 já instalado; fallback para CTkEntry se import falhar
 - [x] `main.py` — RelatoriosView importada e botão "📊 Relatórios" adicionado à sidebar
 
-### Etapa 6 - Relatórios / Fase 2 — Fechamento do Dia (concluída em 14/03/2026)
+### Etapa 6 - Relatórios / Fase 2 — Fechamento do Dia (concluída em 13/03/2026)
 - [x] `database.py` — migration: coluna `nome_avulso TEXT DEFAULT NULL` adicionada à tabela `vendas`
 - [x] `models/venda_model.py`:
       - `registrar_venda()` INSERT agora inclui `nome_avulso`
@@ -415,12 +415,17 @@ Repositório: https://github.com/CaleoSouza/sistema-caixa
       - 2 linhas de 5 cards financeiros:
         * Linha 1: Total Dinheiro | Total Cartão (líquido) | Despesas Pagas (Dinheiro) | Despesas Dia (total) | Erro de Caixa (stub)
         * Linha 2: Total PIX | Total à Prazo | Saldo Líquido Caixa | Saldo Total (bruto) | Saldo Total Líquido (card grande verde)
-      - Tabela cronológica mista: itens de venda (preto) + despesas do dia (vermelho)
-      - Exclusão de item de venda: restaura estoque automaticamente
-      - Exclusão de despesa: remove do banco com confirmação
-      - Botões: "← Voltar" (volta para cards) | "🖨 Imprimir" (stub Em breve)
-      - Método auxiliar `_excluir_registro(tipo, ref_id, data_iso, data_br)`
-- Commit: 7bf0d01
+      - Tabela cronológica: cabeçalho fixo + `CTkScrollableFrame` (height=280) para as linhas
+      - Linhas mistas: itens de venda (preto) + despesas do dia (vermelho)
+      - Ações ✏️🗑️ por linha:
+        * Editar despesa: abre `DespesaForm` existente
+        * Editar item de venda: popup simples (quantidade + preço unitário); recalcula subtotal
+        * Excluir item de venda: restaura estoque automaticamente
+        * Excluir despesa: remove do banco com confirmação
+      - `_recarregar_dia(data_iso, data_br)` — método compartilhado para reload após editar/excluir
+      - Fix layout: reseta pesos de grid do `_container` ao entrar na tela (eliminava espaço vazio)
+      - Botões: "← Voltar" | "🖨 Imprimir" (stub)
+- Commits: 7bf0d01, 7444f1b, 24e6b0c, 7639925, 91632b6
 
 
 ### Cores e tema
