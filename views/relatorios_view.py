@@ -334,6 +334,15 @@ class RelatoriosView(ctk.CTkFrame):
             (data_iso,),
         ).fetchall()
 
+        # Erros/Ajustes de Caixa do dia
+        rows_erros = conn.execute(
+            """SELECT id, nome, valor, forma_pagamento, tipo
+               FROM erros_caixa
+               WHERE data = ?
+               ORDER BY id ASC""",
+            (data_iso,),
+        ).fetchall()
+
         # Timeline: itens de venda do dia
         rows_itens = conn.execute(
             """SELECT v.criado_em,
@@ -374,9 +383,14 @@ class RelatoriosView(ctk.CTkFrame):
         )
         desp_dia = sum(r["valor"] for r in rows_desp)
 
+        # Erros de caixa: entradas somam, saídas subtraem
+        erro_entrada = sum(r["valor"] for r in rows_erros if r["tipo"] == "entrada")
+        erro_saida   = sum(r["valor"] for r in rows_erros if r["tipo"] == "saida")
+        erro_saldo   = erro_entrada - erro_saida   # positivo = sobra, negativo = falta
+
         saldo_liq_caixa = tot_dinheiro - desp_pagas
         saldo_total     = tot_dinheiro + tot_cartao_br + tot_pix
-        saldo_total_liq = tot_dinheiro + tot_cartao_lq + tot_pix
+        saldo_total_liq = tot_dinheiro + tot_cartao_lq + tot_pix + erro_saldo
 
         # ── Reconstrói o container ────────────────────────────────
         for w in self._container.winfo_children():
@@ -468,23 +482,25 @@ class RelatoriosView(ctk.CTkFrame):
         _card(cards_frame, 0, 3, "🔴  Despesas do Dia (Total)", desp_dia,
               cor_valor="#c62828", subtitulo="Montante de despesas do dia", cor_bg="#fff5f5")
 
-        # Card especial: Adicionar Erro de Caixa
+        # Card especial: Erro de Caixa
         fr_erro = ctk.CTkFrame(cards_frame, fg_color="white", corner_radius=10)
         fr_erro.grid(row=0, column=4, padx=5, pady=5, ipadx=10, ipady=10, sticky="nsew")
         ctk.CTkLabel(
             fr_erro, text="⚠️  Erro de Caixa",
             font=ctk.CTkFont(size=11), text_color="#666666", anchor="w",
         ).pack(anchor="w", padx=10, pady=(10, 4))
+        # Cor do saldo: verde para positivo/zero, vermelho para negativo
+        cor_erro = "#2e7d32" if erro_saldo >= 0 else "#c62828"
         ctk.CTkLabel(
-            fr_erro, text="R$ 0,00",
+            fr_erro, text=formatar_moeda(erro_saldo),
             font=ctk.CTkFont(size=16, weight="bold"),
-            text_color="#1a1a1a", anchor="w",
+            text_color=cor_erro, anchor="w",
         ).pack(anchor="w", padx=10)
         ctk.CTkButton(
             fr_erro, text="+ Adicionar", height=28, width=110,
             font=ctk.CTkFont(size=11),
-            fg_color="#3a9adf", hover_color="#2e7d32",
-            command=lambda: messagebox.showinfo("Em breve", "Funcionalidade em desenvolvimento."),
+            fg_color="#3a9adf", hover_color="#1f6aa5",
+            command=lambda d_i=data_iso, d_b=data_br: self._abrir_erro_caixa(d_i, d_b),
         ).pack(anchor="w", padx=10, pady=(4, 10))
 
         # Linha 2
@@ -591,6 +607,25 @@ class RelatoriosView(ctk.CTkFrame):
                 "cor": "#c62828",
             })
 
+        # Erros/Ajustes de Caixa: entrada=preto, saída=vermelho
+        for re in rows_erros:
+            cor_err = "#1a1a1a" if re["tipo"] == "entrada" else "#c62828"
+            bg_err  = "white"   if re["tipo"] == "entrada" else "#fff8f8"
+            sinal   = "▲ Entrada" if re["tipo"] == "entrada" else "▼ Saída"
+            linhas.append({
+                "hora": "—",
+                "nome": re["nome"],
+                "prod": sinal,
+                "qtd": "#",
+                "preco": "#",
+                "total": formatar_moeda(re["valor"]),
+                "pag": re["forma_pagamento"],
+                "tipo": "erro_caixa",
+                "ref_id": re["id"],
+                "cor": cor_err,
+                "bg": bg_err,
+            })
+
         if not linhas:
             ctk.CTkLabel(
                 tbl_frame, text="Nenhum registro encontrado para este dia.",
@@ -600,7 +635,7 @@ class RelatoriosView(ctk.CTkFrame):
             for li, linha in enumerate(linhas):
                 tr = li + 2  # row=0 cabeçalho, row=1 separador, dados a partir de row=2
                 cor = linha["cor"]
-                bg_row = "#fff8f8" if linha["tipo"] == "despesa" else "white"
+                bg_row = linha.get("bg", "#fff8f8" if linha["tipo"] == "despesa" else "white")
 
                 vals = [
                     linha["hora"],
@@ -645,6 +680,121 @@ class RelatoriosView(ctk.CTkFrame):
                     font=ctk.CTkFont(size=13),
                     command=_excluir,
                 ).pack(side="left")
+
+    # ------------------------------------------------------------------
+    # Popup Erro de Caixa
+    # ------------------------------------------------------------------
+    def _abrir_erro_caixa(self, data_iso: str, data_br: str):
+        """Popup para registrar entrada ou saída manual no caixa."""
+        popup = ctk.CTkToplevel(self)
+        popup.title("Adicionar Erro de Caixa")
+        popup.geometry("480x320")
+        popup.resizable(False, False)
+        popup.grab_set()
+
+        ctk.CTkLabel(
+            popup, text="Adicionar Erro de Caixa",
+            font=ctk.CTkFont(size=15, weight="bold"),
+        ).pack(pady=(18, 2))
+        ctk.CTkLabel(
+            popup, text="Selecione o método",
+            font=ctk.CTkFont(size=11), text_color="#888888",
+        ).pack(pady=(0, 12))
+
+        # ── Botões Entrada / Saída ─────────────────────────────────
+        _tipo = {"v": "entrada"}  # estado mutável dentro do closure
+
+        fr_toggle = ctk.CTkFrame(popup, fg_color="transparent")
+        fr_toggle.pack(pady=(0, 16))
+
+        COR_ATIVO   = "#2e7d32"
+        COR_INATIVO = "#888888"
+
+        btn_entrada = ctk.CTkButton(
+            fr_toggle, text="Entrada", width=120, height=34,
+            font=ctk.CTkFont(size=13, weight="bold"),
+            fg_color=COR_ATIVO, hover_color="#1b5e20",
+        )
+        btn_saida = ctk.CTkButton(
+            fr_toggle, text="Saída", width=120, height=34,
+            font=ctk.CTkFont(size=13, weight="bold"),
+            fg_color=COR_INATIVO, hover_color="#666666",
+        )
+
+        def _sel_entrada():
+            _tipo["v"] = "entrada"
+            btn_entrada.configure(fg_color=COR_ATIVO,   hover_color="#1b5e20")
+            btn_saida.configure(  fg_color=COR_INATIVO, hover_color="#666666")
+
+        def _sel_saida():
+            _tipo["v"] = "saida"
+            btn_saida.configure(  fg_color=COR_ATIVO,   hover_color="#1b5e20")
+            btn_entrada.configure(fg_color=COR_INATIVO, hover_color="#666666")
+
+        btn_entrada.configure(command=_sel_entrada)
+        btn_saida.configure(  command=_sel_saida)
+        btn_entrada.pack(side="left", padx=(0, 8))
+        btn_saida.pack(  side="left")
+
+        # ── Campos ────────────────────────────────────────────────
+        fr_campos = ctk.CTkFrame(popup, fg_color="transparent")
+        fr_campos.pack(padx=24, fill="x")
+        fr_campos.grid_columnconfigure(1, weight=1)
+
+        ctk.CTkLabel(fr_campos, text="Nome:", anchor="w").grid(row=0, column=0, pady=6, sticky="w")
+        entry_nome = ctk.CTkEntry(fr_campos, placeholder_text="Ex: Troco incorreto")
+        entry_nome.grid(row=0, column=1, padx=(10, 0), sticky="ew")
+
+        ctk.CTkLabel(fr_campos, text="Valor (R$):", anchor="w").grid(row=1, column=0, pady=6, sticky="w")
+        entry_valor = ctk.CTkEntry(fr_campos, placeholder_text="0,00")
+        entry_valor.grid(row=1, column=1, padx=(10, 0), sticky="ew")
+
+        ctk.CTkLabel(fr_campos, text="Pagamento:", anchor="w").grid(row=2, column=0, pady=6, sticky="w")
+        opt_pag = ctk.CTkOptionMenu(
+            fr_campos,
+            values=["Dinheiro", "PIX", "Cartão", "Transferência", "Outro"],
+        )
+        opt_pag.set("Dinheiro")
+        opt_pag.grid(row=2, column=1, padx=(10, 0), sticky="ew")
+
+        # ── Legenda ───────────────────────────────────────────────
+        ctk.CTkLabel(
+            popup,
+            text="Preencha os campos Nome (Usuário), Total (Valor), Pag. (Tipo do Pagamento).\n"
+                 "Serão inseridos no Histórico do Dia.",
+            font=ctk.CTkFont(size=10), text_color="#888888", justify="left",
+        ).pack(padx=24, pady=(8, 0), anchor="w")
+
+        # ── Botão Adicionar ───────────────────────────────────────
+        def _adicionar():
+            nome = entry_nome.get().strip()
+            try:
+                valor = float(entry_valor.get().strip().replace(",", "."))
+                if valor <= 0:
+                    raise ValueError
+            except ValueError:
+                messagebox.showerror("Valor inválido", "Informe um valor numérico maior que zero.", parent=popup)
+                return
+            if not nome:
+                messagebox.showerror("Nome obrigatório", "Informe um nome para o ajuste.", parent=popup)
+                return
+
+            conn = conectar()
+            conn.execute(
+                "INSERT INTO erros_caixa (data, nome, valor, forma_pagamento, tipo) VALUES (?,?,?,?,?)",
+                (data_iso, nome, valor, opt_pag.get(), _tipo["v"]),
+            )
+            conn.commit()
+            conn.close()
+            popup.destroy()
+            self._recarregar_dia(data_iso, data_br)
+
+        ctk.CTkButton(
+            popup, text="Adicionar", height=38,
+            fg_color="#1f6aa5", hover_color="#1557a0",
+            font=ctk.CTkFont(size=13, weight="bold"),
+            command=_adicionar,
+        ).pack(padx=24, pady=(10, 0), fill="x")
 
     # ------------------------------------------------------------------
     # Edição de registro a partir do histórico
@@ -772,6 +922,18 @@ class RelatoriosView(ctk.CTkFrame):
                 return
             conn = conectar()
             conn.execute("DELETE FROM despesas WHERE id = ?", (ref_id,))
+            conn.commit()
+            conn.close()
+
+        elif tipo == "erro_caixa":
+            confirmar = messagebox.askyesno(
+                "Excluir Ajuste de Caixa",
+                "Deseja realmente excluir este ajuste de caixa?",
+            )
+            if not confirmar:
+                return
+            conn = conectar()
+            conn.execute("DELETE FROM erros_caixa WHERE id = ?", (ref_id,))
             conn.commit()
             conn.close()
 

@@ -187,6 +187,21 @@ def criar_tabelas():
     """)
 
     # ------------------------------------------------------------------
+    # Erros/Ajustes de Caixa — entradas e saídas manuais no fechamento
+    # ------------------------------------------------------------------
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS erros_caixa (
+            id               INTEGER PRIMARY KEY AUTOINCREMENT,
+            data             TEXT    NOT NULL,
+            nome             TEXT    NOT NULL,
+            valor            REAL    NOT NULL DEFAULT 0.0,
+            forma_pagamento  TEXT             DEFAULT 'Dinheiro',
+            tipo             TEXT    NOT NULL DEFAULT 'entrada',
+            criado_em        TEXT             DEFAULT (datetime('now','localtime'))
+        )
+    """)
+
+    # ------------------------------------------------------------------
     # Migração: adiciona colunas novas em bancos já existentes
     # Preserva todos os dados cadastrados anteriormente
     # ------------------------------------------------------------------
