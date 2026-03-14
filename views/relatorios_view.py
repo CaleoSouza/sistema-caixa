@@ -11,6 +11,8 @@ from tkinter import messagebox
 
 from database import conectar
 from utils import formatar_moeda
+from views.despesa_form import DespesaForm
+from controllers.despesa_controller import obter_por_id as obter_despesa_por_id
 
 log = logging.getLogger(__name__)
 
@@ -615,8 +617,19 @@ class RelatoriosView(ctk.CTkFrame):
                 acoes_fr = ctk.CTkFrame(tbl_frame, fg_color=bg_row)
                 acoes_fr.grid(row=tr, column=7, padx=4, pady=2, sticky="ew")
 
+                def _editar(tipo=linha["tipo"], ref=linha["ref_id"], data_i=data_iso, data_b=data_br):
+                    self._editar_registro(tipo, ref, data_i, data_b)
+
                 def _excluir(tipo=linha["tipo"], ref=linha["ref_id"], data_i=data_iso, data_b=data_br):
                     self._excluir_registro(tipo, ref, data_i, data_b)
+
+                ctk.CTkButton(
+                    acoes_fr, text="✏️", width=30, height=24,
+                    fg_color="transparent", text_color="#000000",
+                    hover_color="#e0e0e0",
+                    font=ctk.CTkFont(size=13),
+                    command=_editar,
+                ).pack(side="left")
 
                 ctk.CTkButton(
                     acoes_fr, text="🗑", width=30, height=24,
@@ -625,6 +638,96 @@ class RelatoriosView(ctk.CTkFrame):
                     font=ctk.CTkFont(size=13),
                     command=_excluir,
                 ).pack(side="left")
+
+    # ------------------------------------------------------------------
+    # Edição de registro a partir do histórico
+    # ------------------------------------------------------------------
+    def _editar_registro(self, tipo: str, ref_id: int, data_iso: str, data_br: str):
+        """Abre formulário de edição para item de venda ou despesa."""
+        if tipo == "despesa":
+            despesa = obter_despesa_por_id(ref_id)
+            if not despesa:
+                messagebox.showerror("Erro", "Despesa não encontrada.")
+                return
+
+            def _ao_salvar():
+                self._recarregar_dia(data_iso, data_br)
+
+            DespesaForm(self, despesa, _ao_salvar)
+
+        elif tipo == "venda":
+            # Popup simples para editar quantidade e preço do item de venda
+            conn = conectar()
+            item = conn.execute(
+                "SELECT produto_id, quantidade, preco_unitario FROM itens_venda WHERE id = ?",
+                (ref_id,),
+            ).fetchone()
+            conn.close()
+            if not item:
+                messagebox.showerror("Erro", "Item não encontrado.")
+                return
+
+            popup = ctk.CTkToplevel(self)
+            popup.title("Editar Item de Venda")
+            popup.geometry("320x240")
+            popup.resizable(False, False)
+            popup.grab_set()
+
+            ctk.CTkLabel(popup, text="Editar Item de Venda",
+                         font=ctk.CTkFont(size=14, weight="bold")).pack(pady=(16, 10))
+
+            fr = ctk.CTkFrame(popup, fg_color="transparent")
+            fr.pack(padx=20, fill="x")
+
+            ctk.CTkLabel(fr, text="Quantidade:", anchor="w").grid(row=0, column=0, pady=6, sticky="w")
+            entry_qtd = ctk.CTkEntry(fr, width=120)
+            entry_qtd.insert(0, str(int(item["quantidade"])))
+            entry_qtd.grid(row=0, column=1, padx=(8, 0))
+
+            ctk.CTkLabel(fr, text="Preço unitário (R$):", anchor="w").grid(row=1, column=0, pady=6, sticky="w")
+            entry_preco = ctk.CTkEntry(fr, width=120)
+            entry_preco.insert(0, f"{item['preco_unitario']:.2f}".replace(".", ","))
+            entry_preco.grid(row=1, column=1, padx=(8, 0))
+
+            def _salvar_item():
+                try:
+                    qtd   = int(entry_qtd.get().strip())
+                    preco = float(entry_preco.get().strip().replace(",", "."))
+                    if qtd <= 0 or preco < 0:
+                        raise ValueError
+                except ValueError:
+                    messagebox.showerror("Valor inválido", "Informe quantidade (inteiro > 0) e preço válido.", parent=popup)
+                    return
+
+                subtotal = round(qtd * preco, 2)
+                conn2 = conectar()
+                conn2.execute(
+                    "UPDATE itens_venda SET quantidade=?, preco_unitario=?, subtotal=? WHERE id=?",
+                    (qtd, preco, subtotal, ref_id),
+                )
+                conn2.commit()
+                conn2.close()
+                popup.destroy()
+                self._recarregar_dia(data_iso, data_br)
+
+            ctk.CTkButton(
+                popup, text="💾 Salvar", height=36,
+                fg_color="#2e7d32", hover_color="#1b5e20",
+                command=_salvar_item,
+            ).pack(pady=(16, 0), padx=20, fill="x")
+
+    # ------------------------------------------------------------------
+    # Recarga do fechamento do dia (usada após editar/excluir)
+    # ------------------------------------------------------------------
+    def _recarregar_dia(self, data_iso: str, data_br: str):
+        """Reposiciona o date picker e recarrega o Fechamento do Dia."""
+        data_obj = datetime.datetime.strptime(data_br, "%d/%m/%Y").date()
+        if _TEM_TKCALENDAR:
+            self._de_dia.set_date(data_obj)
+        else:
+            self._entry_dia.delete(0, "end")
+            self._entry_dia.insert(0, data_br)
+        self._ver_dia()
 
     # ------------------------------------------------------------------
     # Exclusão de registro a partir do histórico
@@ -666,12 +769,7 @@ class RelatoriosView(ctk.CTkFrame):
             conn.close()
 
         # Recarrega o fechamento do dia
-        if _TEM_TKCALENDAR:
-            self._de_dia.set_date(datetime.datetime.strptime(data_br, "%d/%m/%Y").date())
-        else:
-            self._entry_dia.delete(0, "end")
-            self._entry_dia.insert(0, data_br)
-        self._ver_dia()
+        self._recarregar_dia(data_iso, data_br)
 
     def _ver_mes(self):
         """Substituirá o container pela tabela detalhada do mês (próxima etapa)."""
