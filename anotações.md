@@ -399,7 +399,29 @@ Repositório: https://github.com/CaleoSouza/sistema-caixa
       - Funções internas: _resumo_dia(data_iso) e _resumo_mes(mes, ano) consultam a tabela vendas diretamente
       - tkcalendar 1.6.1 já instalado; fallback para CTkEntry se import falhar
 - [x] `main.py` — RelatoriosView importada e botão "📊 Relatórios" adicionado à sidebar
-- [ ] Fase 2: tabelas detalhadas de vendas por dia e por mês (implementar em sessão futura)
+
+### Etapa 6 - Relatórios / Fase 2 — Fechamento do Dia (concluída em 14/03/2026)
+- [x] `database.py` — migration: coluna `nome_avulso TEXT DEFAULT NULL` adicionada à tabela `vendas`
+- [x] `models/venda_model.py`:
+      - `registrar_venda()` INSERT agora inclui `nome_avulso`
+      - `listar_vendas()` usa `COALESCE(v.nome_avulso, c.nome, 'Sem Cadastro')`
+- [x] `controllers/venda_controller.py`:
+      - `finalizar_venda()` recebe parâmetro `nome_avulso: str | None = None`
+      - `dados_venda` repassa `nome_avulso` para o model
+- [x] `views/carrinho_view.py`:
+      - `_finalizar_compra()` captura `entry_cliente_busca.get()` quando `_modo_sem_cadastro=True`
+      - Passa `nome_avulso=` para `finalizar_venda()`
+- [x] `views/relatorios_view.py` — `_ver_dia()` completo:
+      - 2 linhas de 5 cards financeiros:
+        * Linha 1: Total Dinheiro | Total Cartão (líquido) | Despesas Pagas (Dinheiro) | Despesas Dia (total) | Erro de Caixa (stub)
+        * Linha 2: Total PIX | Total à Prazo | Saldo Líquido Caixa | Saldo Total (bruto) | Saldo Total Líquido (card grande verde)
+      - Tabela cronológica mista: itens de venda (preto) + despesas do dia (vermelho)
+      - Exclusão de item de venda: restaura estoque automaticamente
+      - Exclusão de despesa: remove do banco com confirmação
+      - Botões: "← Voltar" (volta para cards) | "🖨 Imprimir" (stub Em breve)
+      - Método auxiliar `_excluir_registro(tipo, ref_id, data_iso, data_br)`
+- Commit: 7bf0d01
+
 
 ### Cores e tema
 - Tema: claro (`ctk.set_appearance_mode("light")`)
