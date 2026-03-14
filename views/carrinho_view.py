@@ -59,6 +59,7 @@ class CarrinhoView(ctk.CTkFrame):
 
         # Estado do Resumo do Pedido (Fase 2)
         self._cliente_selecionado: dict | None = None
+        self._modo_sem_cadastro: bool = False   # True = campo livre, sem busca no BD
         self._forma_pagamento: str = "dinheiro"
         self._tipo_cartao: str = "debito"
         self._parcelas: int = 1
@@ -213,8 +214,8 @@ class CarrinhoView(ctk.CTkFrame):
         self._btn_sem_cadastro = ctk.CTkButton(
             cli_frame, text="Sem Cadastro", width=100, height=32,
             font=ctk.CTkFont(size=11, weight="bold"),
-            fg_color="#2e7d32", hover_color="#1b5e20",
-            command=self._remover_cliente,
+            fg_color="#888888", hover_color="#666666",
+            command=self._toggle_sem_cadastro,
         )
         self._btn_sem_cadastro.grid(row=0, column=1)
 
@@ -664,6 +665,10 @@ class CarrinhoView(ctk.CTkFrame):
     # ------------------------------------------------------------------
     def _buscar_cliente(self, event=None):
         """Abre dropdown com sugestões de cliente a partir de 3 caracteres."""
+        # Modo sem cadastro: campo é texto livre, sem consulta ao BD
+        if self._modo_sem_cadastro:
+            return
+
         texto = self.entry_cliente_busca.get().strip()
 
         # Fecha dropdown anterior
@@ -716,6 +721,9 @@ class CarrinhoView(ctk.CTkFrame):
 
     def _selecionar_cliente(self, cliente: dict):
         """Fixa o cliente e exibe a faixa de confirma\u00e7\u00e3o."""
+        # Sair do modo sem cadastro caso estivesse ativo
+        self._modo_sem_cadastro = False
+        self._restaurar_entry_cliente()
         self._cliente_selecionado = cliente
         self.entry_cliente_busca.delete(0, "end")
         self._fechar_dropdown_cliente()
@@ -727,22 +735,59 @@ class CarrinhoView(ctk.CTkFrame):
             self._mostrar_painel_pagamento()
 
     def _remover_cliente(self):
-        """Remove o cliente selecionado."""
+        """Remove o cliente selecionado (chamado pelo botão ✕ na faixa)."""
         self._cliente_selecionado = None
+        self._modo_sem_cadastro = False
+        self._restaurar_entry_cliente()
         self.entry_cliente_busca.delete(0, "end")
         self.frame_cli_sel.grid_remove()
         self._atualizar_cor_sem_cadastro()
         if self._forma_pagamento == "a_prazo":
             self._mostrar_painel_pagamento()
 
+    def _toggle_sem_cadastro(self):
+        """Alterna o modo Sem Cadastro.
+
+        Cinza (inativo): campo busca clientes cadastrados normalmente.
+        Verde (ativo):   campo vira texto livre para digitar nome avulso.
+        """
+        if self._modo_sem_cadastro:
+            # Desativar: voltar ao modo normal
+            self._modo_sem_cadastro = False
+            self._cliente_selecionado = None
+            self._restaurar_entry_cliente()
+            self.entry_cliente_busca.delete(0, "end")
+            self.frame_cli_sel.grid_remove()
+        else:
+            # Ativar: limpar cliente e liberar campo livre
+            self._modo_sem_cadastro = True
+            self._cliente_selecionado = None
+            self._fechar_dropdown_cliente()
+            self.frame_cli_sel.grid_remove()
+            self.entry_cliente_busca.delete(0, "end")
+            self.entry_cliente_busca.configure(
+                placeholder_text="Nome do cliente (opcional)...",
+                border_color="#2e7d32",
+            )
+        self._atualizar_cor_sem_cadastro()
+        if self._forma_pagamento == "a_prazo":
+            self._mostrar_painel_pagamento()
+
+    def _restaurar_entry_cliente(self):
+        """Restaura o campo de busca de cliente para o modo padrão."""
+        if hasattr(self, "entry_cliente_busca"):
+            self.entry_cliente_busca.configure(
+                placeholder_text="Digite 3 letras do nome...",
+                border_color="#cccccc",
+            )
+
     def _atualizar_cor_sem_cadastro(self):
-        """Verde quando nenhum cliente est\u00e1 selecionado (estado ativo), cinza caso contr\u00e1rio."""
+        """Verde quando o modo Sem Cadastro está ativo, cinza caso contrário."""
         if not hasattr(self, "_btn_sem_cadastro"):
             return
-        sem_cliente = (self._cliente_selecionado is None)
         self._btn_sem_cadastro.configure(
-            fg_color="#2e7d32" if sem_cliente else "#888888",
-            hover_color="#1b5e20" if sem_cliente else "#666666",
+            fg_color="#2e7d32" if self._modo_sem_cadastro else "#888888",
+            hover_color="#1b5e20" if self._modo_sem_cadastro else "#666666",
         )
 
     # ------------------------------------------------------------------
@@ -1069,11 +1114,13 @@ class CarrinhoView(ctk.CTkFrame):
         # Limpa o carrinho e reseta estado
         self._carrinho.clear()
         self._cliente_selecionado = None
+        self._modo_sem_cadastro = False
         self._desconto_pct = 0.0
         self._parcelas = 1
         self._forma_pagamento = "dinheiro"
         self.entry_desconto.delete(0, "end")
         self.frame_cli_sel.grid_remove()
+        self._restaurar_entry_cliente()
         self.entry_cliente_busca.delete(0, "end")
         self._recarregar_carrinho()
         self._atualizar_cores_forma()
