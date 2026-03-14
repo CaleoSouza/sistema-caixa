@@ -142,13 +142,32 @@ Padrão Visual:
 Resolução e Responsividade:
 - Sistema exclusivamente Desktop
 - Resoluções suportadas: HD (1280x720) e Full HD (1920x1080)
-- O main.py deve detectar a resolução do monitor automaticamente e ajustar o tamanho da janela:
+- O main.py deve detectar a resolução do monitor automaticamente e ajustar o tamanho dajanela:
     HD (1280x720)   → janela em 1280x720
     Full HD         → janela em 1920x1080
 - Usar grid() com weight para que os elementos se adaptem ao redimensionamento
 - Escala dos widgets via customtkinter.set_widget_scaling() conforme a resolução detectada
 
 --------------------
+
+⚠️ IMPORTANTE — Padrão Obrigatório de Tabelas:
+TODAS as tabelas do sistema (Produtos, Clientes, Carrinho, Crediário, Despesas, Relatórios, etc.)
+DEVEM seguir EXATAMENTE o mesmo padrão de alinhamento e responsividade:
+
+  1. Um ÚNICO CTkScrollableFrame contém tanto o cabeçalho quanto os dados.
+  2. Cabeçalho renderizado dentro do CTkScrollableFrame como row=0 (com fg_color="#f0f0f0" ou similar).
+  3. Dados inseridos a partir de row=1 (enumerate(..., start=1)).
+  4. Colunas configuradas via grid_columnconfigure(i, weight=peso) — SEM width= nos CTkLabel.
+  5. Labels com sticky="ew" para preencher a célula proporcionalmente.
+  6. Coluna "Ações": weight=0, minsize fixo — não cresce com a janela.
+  7. NUNCA usar dois frames separados (cabeçalho fixo + scroll de dados) pois os grids são
+     independentes e causam desalinhamento conforme o conteúdo.
+
+Qualquer nova tabela criada no sistema DEVE seguir esse padrão sem exceção.
+
+--------------------
+
+
 
 
 
