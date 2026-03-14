@@ -669,7 +669,7 @@ class RelatoriosView(ctk.CTkFrame):
 
             popup = ctk.CTkToplevel(self)
             popup.title("Editar Item de Venda")
-            popup.geometry("320x240")
+            popup.geometry("420x240")
             popup.resizable(False, False)
             popup.grab_set()
 
