@@ -521,23 +521,34 @@ class RelatoriosView(ctk.CTkFrame):
         ).grid(row=2, column=0, padx=16, pady=(10, 4), sticky="w")
 
         # ── Tabela cronológica ────────────────────────────────────
-        tbl_frame = ctk.CTkFrame(scroll, fg_color="white", corner_radius=10)
-        tbl_frame.grid(row=3, column=0, padx=16, pady=(0, 20), sticky="ew")
+        # Container externo com cabeçalho fixo + scroll dos dados
+        tbl_outer = ctk.CTkFrame(scroll, fg_color="white", corner_radius=10)
+        tbl_outer.grid(row=3, column=0, padx=16, pady=(0, 20), sticky="ew")
 
-        cols = ["Data/Hora", "Nome", "Produto", "Qtd.", "Preço", "Total", "Pagamento", "Ações"]
+        cols  = ["Data/Hora", "Nome", "Produto", "Qtd.", "Preço", "Total", "Pagamento", "Ações"]
         pesos = [14, 16, 20, 5, 10, 10, 14, 6]
+
+        # Cabeçalho fixo (não rola)
+        tbl_header = ctk.CTkFrame(tbl_outer, fg_color="white", corner_radius=0)
+        tbl_header.pack(fill="x", padx=0, pady=0)
         for ci, (c_txt, peso) in enumerate(zip(cols, pesos)):
-            tbl_frame.grid_columnconfigure(ci, weight=peso)
+            tbl_header.grid_columnconfigure(ci, weight=peso)
             ctk.CTkLabel(
-                tbl_frame, text=c_txt,
+                tbl_header, text=c_txt,
                 font=ctk.CTkFont(size=11, weight="bold"),
                 text_color="#1f6aa5", anchor="w",
             ).grid(row=0, column=ci, padx=8, pady=(8, 4), sticky="w")
 
         # Separador cabeçalho
-        ctk.CTkFrame(tbl_frame, fg_color="#e0e0e0", height=1, corner_radius=0).grid(
-            row=1, column=0, columnspan=8, padx=6, pady=0, sticky="ew"
+        ctk.CTkFrame(tbl_outer, fg_color="#e0e0e0", height=1, corner_radius=0).pack(
+            fill="x", padx=6
         )
+
+        # Scroll com as linhas de dados
+        tbl_frame = ctk.CTkScrollableFrame(tbl_outer, fg_color="white", corner_radius=0, height=280)
+        tbl_frame.pack(fill="both", expand=True, padx=0, pady=(0, 6))
+        for ci, peso in enumerate(pesos):
+            tbl_frame.grid_columnconfigure(ci, weight=peso)
 
         # ── Monta linhas mesclando vendas e despesas ──────────────
         # Converte itens de venda para lista de dicts normalizados
@@ -588,10 +599,10 @@ class RelatoriosView(ctk.CTkFrame):
             ctk.CTkLabel(
                 tbl_frame, text="Nenhum registro encontrado para este dia.",
                 font=ctk.CTkFont(size=12), text_color="#888888",
-            ).grid(row=2, column=0, columnspan=8, padx=8, pady=20)
+            ).grid(row=0, column=0, columnspan=8, padx=8, pady=20)
         else:
             for li, linha in enumerate(linhas):
-                tr = li + 2  # linha da tabela (0=cabeçalho, 1=sep)
+                tr = li  # scroll começa em 0, sem offset do cabeçalho
                 cor = linha["cor"]
                 bg_row = "#fff8f8" if linha["tipo"] == "despesa" else "white"
 
