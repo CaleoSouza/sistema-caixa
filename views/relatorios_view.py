@@ -380,7 +380,11 @@ class RelatoriosView(ctk.CTkFrame):
         for w in self._container.winfo_children():
             w.destroy()
 
+        # Reseta pesos de linhas/colunas herdados do layout de cards
+        for i in range(4):
+            self._container.grid_rowconfigure(i, weight=0)
         self._container.grid_columnconfigure(0, weight=1)
+        self._container.grid_columnconfigure(1, weight=0)
         self._container.grid_rowconfigure(2, weight=1)
 
         # ── Cabeçalho ─────────────────────────────────────────────
