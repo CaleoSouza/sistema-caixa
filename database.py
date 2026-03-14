@@ -235,7 +235,11 @@ def _migrar_tabelas(conn):
     colunas_vendas = [
         row[1] for row in conn.execute("PRAGMA table_info(vendas)")
     ]
-    for nome, tipo in [("taxa_cartao", "REAL DEFAULT 0.0"), ("parcelas", "INTEGER DEFAULT 1")]:
+    for nome, tipo in [
+        ("taxa_cartao", "REAL DEFAULT 0.0"),
+        ("parcelas", "INTEGER DEFAULT 1"),
+        ("nome_avulso", "TEXT DEFAULT NULL"),
+    ]:
         if nome not in colunas_vendas:
             conn.execute(f"ALTER TABLE vendas ADD COLUMN {nome} {tipo}")
 

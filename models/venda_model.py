@@ -15,7 +15,7 @@ def registrar_venda(dados: dict, itens: list) -> int:
     Insere um cabeçalho de venda e seus itens no banco.
 
     dados: {
-        cliente_id, total, desconto, total_final,
+        cliente_id, nome_avulso, total, desconto, total_final,
         forma_pagamento, taxa_cartao, parcelas
     }
     itens: list de { produto_id, quantidade, preco_unitario, subtotal }
@@ -25,10 +25,10 @@ def registrar_venda(dados: dict, itens: list) -> int:
     conn = conectar()
     cursor = conn.execute(
         """INSERT INTO vendas
-               (cliente_id, total, desconto, total_final,
+               (cliente_id, nome_avulso, total, desconto, total_final,
                 forma_pagamento, taxa_cartao, parcelas)
            VALUES
-               (:cliente_id, :total, :desconto, :total_final,
+               (:cliente_id, :nome_avulso, :total, :desconto, :total_final,
                 :forma_pagamento, :taxa_cartao, :parcelas)""",
         dados,
     )
@@ -62,7 +62,7 @@ def listar_vendas(limite: int = 100) -> list:
     conn = conectar()
     rows = conn.execute(
         """SELECT v.id, v.cliente_id,
-                  COALESCE(c.nome, 'Sem Cadastro') AS cliente_nome,
+                  COALESCE(v.nome_avulso, c.nome, 'Sem Cadastro') AS cliente_nome,
                   v.total, v.desconto, v.total_final,
                   v.forma_pagamento, v.taxa_cartao, v.parcelas,
                   v.status, v.criado_em

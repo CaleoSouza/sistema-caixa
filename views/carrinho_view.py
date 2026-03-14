@@ -1086,6 +1086,11 @@ class CarrinhoView(ctk.CTkFrame):
 
         cliente_id = self._cliente_selecionado["id"] if self._cliente_selecionado else None
 
+        # Nome avulso — captura o texto digitado quando estava em modo sem cadastro
+        nome_avulso: str | None = None
+        if self._modo_sem_cadastro:
+            nome_avulso = self.entry_cliente_busca.get().strip() or None
+
         if self._forma_pagamento == "cartao":
             taxa = (
                 _TAXA_DEBITO
@@ -1102,6 +1107,7 @@ class CarrinhoView(ctk.CTkFrame):
             desconto_pct=self._desconto_pct,
             taxa_cartao=taxa,
             parcelas=self._parcelas,
+            nome_avulso=nome_avulso,
         )
 
         if not ok:

@@ -25,6 +25,7 @@ def finalizar_venda(
     desconto_pct: float,
     taxa_cartao: float = 0.0,
     parcelas: int = 1,
+    nome_avulso: str | None = None,
 ) -> tuple[bool, str]:
     """
     Finaliza uma venda completa:
@@ -60,6 +61,7 @@ def finalizar_venda(
 
     dados_venda = {
         "cliente_id":      cliente_id,
+        "nome_avulso":     nome_avulso or None,
         "total":           total,
         "desconto":        desconto_val,
         "total_final":     total_final,
