@@ -155,9 +155,9 @@ class HomeView(ctk.CTkFrame):
         if on_click:
             for widget in (card, lbl_titulo, lbl_numero, lbl_desc):
                 widget.configure(cursor="hand2")
-                widget.bind("<Button-1>", lambda e: on_click())
-                widget.bind("<Enter>", lambda e, c=card: c.configure(fg_color="#f0f7ff"))
-                widget.bind("<Leave>", lambda e, c=card: c.configure(fg_color="white"))
+                widget.bind("<Button-1>", lambda *_: on_click())
+                widget.bind("<Enter>", lambda *_, c=card: c.configure(fg_color="#f0f7ff"))
+                widget.bind("<Leave>", lambda *_, c=card: c.configure(fg_color="white"))
 
     def _abrir_clientes_em_atraso(self):
         """Navega para a lista de clientes com o filtro de crediário em atraso ativo."""
