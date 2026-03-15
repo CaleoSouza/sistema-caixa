@@ -359,6 +359,9 @@ class RelatoriosView(ctk.CTkFrame):
                       iv.subtotal,
                       v.forma_pagamento,
                       COALESCE(v.parcelas, 1) AS parcelas,
+                      COALESCE(v.taxa_cartao, 0.0) AS taxa_cartao,
+                      COALESCE(v.desconto, 0.0) AS desconto,
+                      v.total_final,
                       v.id AS venda_id,
                       iv.id AS item_id
                FROM itens_venda iv
@@ -546,8 +549,8 @@ class RelatoriosView(ctk.CTkFrame):
 
         # ── Tabela cronológica ────────────────────────────────────
         # Padrão do sistema: cabeçalho (row=0) + dados (row=1+) dentro do MESMO CTkScrollableFrame
-        cols  = ["Data/Hora", "Nome", "Produto", "Qtd.", "Preço", "Total", "Pagamento", "Ações"]
-        pesos = [14, 16, 20, 5, 10, 10, 14, 6]
+        cols  = ["Data/Hora", "Nome", "Produto", "Qtd.", "Preço", "Taxa/Desc.", "Total", "Pagamento", "Ações"]
+        pesos = [10, 14, 18, 4, 9, 9, 9, 12, 6]
 
         tbl_outer = ctk.CTkFrame(scroll, fg_color="white", corner_radius=10)
         tbl_outer.grid(row=3, column=0, padx=16, pady=(0, 20), sticky="ew")
@@ -567,7 +570,7 @@ class RelatoriosView(ctk.CTkFrame):
 
         # Separador cabeçalho
         ctk.CTkFrame(tbl_frame, fg_color="#e0e0e0", height=1, corner_radius=0).grid(
-            row=1, column=0, columnspan=8, padx=6, pady=0, sticky="ew"
+            row=1, column=0, columnspan=9, padx=6, pady=0, sticky="ew"
         )
 
         # ── Monta linhas mesclando vendas e despesas ──────────────
@@ -588,13 +591,38 @@ class RelatoriosView(ctk.CTkFrame):
                 fp_label = "A Prazo"
             else:
                 fp_label = fp
+            # --- Calcula total líquido e taxa/desconto proporcional ao item ---
+            # total_bruto_venda = total antes do desconto
+            total_bruto_venda = r["total_final"] + r["desconto"]
+            proporcao = (r["subtotal"] / total_bruto_venda) if total_bruto_venda > 0 else 1.0
+
+            # Após desconto: valor proporcional do item sobre o total com desconto
+            item_apos_desconto = proporcao * r["total_final"]
+
+            # Após taxa do cartão (custo do lojista)
+            if r["forma_pagamento"] == "cartao" and r["taxa_cartao"] > 0:
+                item_liquido = item_apos_desconto * (1 - r["taxa_cartao"] / 100)
+            else:
+                item_liquido = item_apos_desconto
+
+            # Taxa/Desc. = diferença entre bruto e líquido
+            taxa_valor = r["subtotal"] - item_liquido
+            if taxa_valor > 0.005:
+                taxa_desc_str = f"-{formatar_moeda(taxa_valor)}"
+                taxa_desc_cor = "#e53935"
+            else:
+                taxa_desc_str = "#"
+                taxa_desc_cor = "#1a1a1a"
+
             linhas.append({
                 "hora": hora,
                 "nome": r["nome"],
                 "prod": r["prod"] or "—",
                 "qtd": str(int(r["quantidade"])) if r["quantidade"] else "1",
                 "preco": formatar_moeda(r["preco_unitario"]),
-                "total": formatar_moeda(r["subtotal"]),
+                "taxa_desc": taxa_desc_str,
+                "taxa_desc_cor": taxa_desc_cor,
+                "total": formatar_moeda(item_liquido),  # total líquido real
                 "pag": fp_label,
                 "tipo": "venda",
                 "ref_id": r["item_id"],
@@ -608,6 +636,8 @@ class RelatoriosView(ctk.CTkFrame):
                 "prod": rd["descricao"],
                 "qtd": "#",
                 "preco": "#",
+                "taxa_desc": "#",
+                "taxa_desc_cor": "#1a1a1a",
                 "total": formatar_moeda(rd["valor"]),
                 "pag": rd["forma_pagamento"],
                 "tipo": "despesa",
@@ -626,6 +656,8 @@ class RelatoriosView(ctk.CTkFrame):
                 "prod": sinal,
                 "qtd": "#",
                 "preco": "#",
+                "taxa_desc": "#",
+                "taxa_desc_cor": "#1a1a1a",
                 "total": formatar_moeda(re["valor"]),
                 "pag": re["forma_pagamento"],
                 "tipo": "erro_caixa",
@@ -645,16 +677,17 @@ class RelatoriosView(ctk.CTkFrame):
                 cor = linha["cor"]
                 bg_row = linha.get("bg", "#fff8f8" if linha["tipo"] == "despesa" else "white")
 
-                vals = [
-                    linha["hora"],
-                    linha["nome"],
-                    linha["prod"],
-                    linha["qtd"],
-                    linha["preco"],
-                    linha["total"],
-                    linha["pag"],
+                # Colunas fixas (cor padrão da linha)
+                cols_vals = [
+                    (0, linha["hora"]),
+                    (1, linha["nome"]),
+                    (2, linha["prod"]),
+                    (3, linha["qtd"]),
+                    (4, linha["preco"]),
+                    (6, linha["total"]),
+                    (7, linha["pag"]),
                 ]
-                for ci, v in enumerate(vals):
+                for ci, v in cols_vals:
                     ctk.CTkLabel(
                         tbl_frame, text=v,
                         font=ctk.CTkFont(size=11),
@@ -663,9 +696,18 @@ class RelatoriosView(ctk.CTkFrame):
                         anchor="w",
                     ).grid(row=tr, column=ci, padx=8, pady=3, sticky="ew")
 
-                # Coluna Ações
+                # Coluna Taxa/Desc. (col=5) — cor própria (vermelho se houver desconto/taxa)
+                ctk.CTkLabel(
+                    tbl_frame, text=linha["taxa_desc"],
+                    font=ctk.CTkFont(size=11, weight="bold"),
+                    text_color=linha["taxa_desc_cor"],
+                    fg_color=bg_row,
+                    anchor="w",
+                ).grid(row=tr, column=5, padx=8, pady=3, sticky="ew")
+
+                # Coluna Ações (col=8)
                 acoes_fr = ctk.CTkFrame(tbl_frame, fg_color=bg_row)
-                acoes_fr.grid(row=tr, column=7, padx=4, pady=2, sticky="ew")
+                acoes_fr.grid(row=tr, column=8, padx=4, pady=2, sticky="ew")
 
                 def _editar(tipo=linha["tipo"], ref=linha["ref_id"], data_i=data_iso, data_b=data_br):
                     self._editar_registro(tipo, ref, data_i, data_b)

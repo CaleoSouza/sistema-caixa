@@ -5,11 +5,13 @@ Painel direito: Resumo do Pedido (implementado na Etapa 4 — Fase 2).
 """
 
 import logging
+import os
 import tkinter as tk
 import customtkinter as ctk
 from tkinter import messagebox
+from PIL import Image
 
-from controllers.produto_controller import obter_lista
+from controllers.produto_controller import obter_lista, PASTA_IMAGENS_PRODUTOS
 from controllers.venda_controller import finalizar_venda
 from models.produto_model import buscar_por_codigo_barras
 from models.cliente_model import listar_clientes
@@ -490,17 +492,29 @@ class CarrinhoView(ctk.CTkFrame):
             return
 
         for linha, p in enumerate(produtos, start=1):
-            dados_cols = [
-                (f"#{p['id']:02d}",          "#555555"),
-                (p["nome"],                    "#1f6aa5"),
-                (str(p["quantidade"]),         "#1a1a1a"),
-                (formatar_moeda(p["preco"]),   "#1a1a1a"),
-            ]
-            for col, (texto, cor) in enumerate(dados_cols):
+            # Coluna ID
+            ctk.CTkLabel(
+                self.scroll_produtos, text=f"#{p['id']:02d}",
+                font=ctk.CTkFont(size=12), text_color="#555555", anchor="w",
+            ).grid(row=linha, column=0, padx=(6, 0), pady=2, sticky="ew")
+
+            # Coluna Nome — clicável
+            lbl_nome = ctk.CTkLabel(
+                self.scroll_produtos, text=p["nome"],
+                font=ctk.CTkFont(size=12, underline=True), text_color="#1f6aa5",
+                anchor="w", cursor="hand2",
+            )
+            lbl_nome.grid(row=linha, column=1, padx=(6, 0), pady=2, sticky="ew")
+            lbl_nome.bind("<Button-1>", lambda e, prod=p: self._ver_produto(prod))
+
+            # Colunas Qtd. e Preço
+            for col, (texto, cor) in enumerate([
+                (str(p["quantidade"]),        "#1a1a1a"),
+                (formatar_moeda(p["preco"]), "#1a1a1a"),
+            ], start=2):
                 ctk.CTkLabel(
                     self.scroll_produtos, text=texto,
-                    font=ctk.CTkFont(size=12), text_color=cor,
-                    anchor="w",
+                    font=ctk.CTkFont(size=12), text_color=cor, anchor="w",
                 ).grid(row=linha, column=col, padx=(6, 0), pady=2, sticky="ew")
 
             ctk.CTkButton(
@@ -508,6 +522,156 @@ class CarrinhoView(ctk.CTkFrame):
                 font=ctk.CTkFont(size=11, weight="bold"),
                 command=lambda prod=p: self._adicionar_ao_carrinho(prod),
             ).grid(row=linha, column=len(COLS_DISP) - 1, padx=(4, 4), pady=2)
+
+    # ------------------------------------------------------------------
+    # Popup: Preview rápido do produto (nome + imagens + descrição)
+    # ------------------------------------------------------------------
+
+    def _ver_produto(self, p: dict):
+        """Abre janela simples com imagens e descrição do produto."""
+        popup = ctk.CTkToplevel(self)
+        popup.title(p["nome"])
+        popup.geometry("440x640")
+        popup.resizable(False, False)
+        popup.grab_set()
+        popup.after(50, popup.lift)
+
+        # Centraliza na janela principal
+        def _centralizar():
+            popup.update_idletasks()
+            rx = self.winfo_rootx() + (self.winfo_width()  - 440) // 2
+            ry = self.winfo_rooty() + (self.winfo_height() - 640) // 2
+            popup.geometry(f"440x640+{rx}+{ry}")
+        popup.after(60, _centralizar)
+
+        popup.grid_columnconfigure(0, weight=1)
+        linha = 0
+
+        # --- Nome ---
+        ctk.CTkLabel(
+            popup, text=p["nome"],
+            font=ctk.CTkFont(size=15, weight="bold"),
+            text_color="#1f6aa5", wraplength=400, justify="center",
+        ).grid(row=linha, column=0, padx=16, pady=(16, 4), sticky="ew")
+        linha += 1
+
+        # --- Coleta imagens ---
+        imgs: list[str] = []
+        for chave in ("imagem", "imagem2", "imagem3"):
+            nome_arq = p.get(chave)
+            if nome_arq:
+                caminho = os.path.join(PASTA_IMAGENS_PRODUTOS, nome_arq)
+                if os.path.isfile(caminho):
+                    imgs.append(caminho)
+
+        estado = {"idx": 0}
+
+        # Frame do carrossel (linha inteira)
+        fr_car = ctk.CTkFrame(popup, fg_color="#f0f0f0", corner_radius=8)
+        fr_car.grid(row=linha, column=0, padx=16, pady=(0, 4), sticky="ew")
+        fr_car.grid_columnconfigure(1, weight=1)
+        linha += 1
+
+        btn_ant = ctk.CTkButton(
+            fr_car, text="‹", width=40, height=220,
+            fg_color="#d0d0d0", hover_color="#aaaaaa",
+            text_color="#222222", font=ctk.CTkFont(size=28, weight="bold"),
+            corner_radius=6, command=lambda: anterior(),
+        )
+        btn_ant.grid(row=0, column=0, padx=(6, 0), pady=6)
+
+        lbl_img = ctk.CTkLabel(fr_car, text="", width=320, height=220)
+        lbl_img.grid(row=0, column=1, padx=6, pady=6)
+
+        btn_prox = ctk.CTkButton(
+            fr_car, text="›", width=40, height=220,
+            fg_color="#d0d0d0", hover_color="#aaaaaa",
+            text_color="#222222", font=ctk.CTkFont(size=28, weight="bold"),
+            corner_radius=6, command=lambda: proxima(),
+        )
+        btn_prox.grid(row=0, column=2, padx=(0, 6), pady=6)
+
+        # Contador
+        lbl_contador = ctk.CTkLabel(
+            popup, text="",
+            font=ctk.CTkFont(size=11), text_color="#888888",
+        )
+        lbl_contador.grid(row=linha, column=0, pady=(0, 6))
+        linha += 1
+
+        def exibir(idx):
+            if not imgs:
+                lbl_img.configure(image=None, text="📦  Sem imagem",
+                                  font=ctk.CTkFont(size=14), text_color="#aaaaaa")
+                lbl_contador.configure(text="")
+                btn_ant.grid_remove()
+                btn_prox.grid_remove()
+                return
+            try:
+                img = Image.open(imgs[idx])
+                img.thumbnail((310, 210), Image.LANCZOS)
+                ctk_img = ctk.CTkImage(light_image=img, size=(img.width, img.height))
+                lbl_img.configure(image=ctk_img, text="")
+                lbl_img._image = ctk_img
+            except Exception:
+                lbl_img.configure(image=None, text="Erro", text_color="#e53935")
+            total = len(imgs)
+            lbl_contador.configure(text=f"{idx + 1} / {total}" if total > 1 else "")
+
+        def anterior():
+            estado["idx"] = (estado["idx"] - 1) % len(imgs)
+            exibir(estado["idx"])
+
+        def proxima():
+            estado["idx"] = (estado["idx"] + 1) % len(imgs)
+            exibir(estado["idx"])
+
+        # Oculta setas se só há 0 ou 1 imagem
+        if len(imgs) <= 1:
+            btn_ant.grid_remove()
+            btn_prox.grid_remove()
+
+        exibir(0)
+
+        # --- Data de Validade ---
+        validade = (p.get("data_validade") or "").strip()
+        if validade:
+            from utils import formatar_data
+            ctk.CTkLabel(
+                popup,
+                text=f"⏳  Validade: {formatar_data(validade)}",
+                font=ctk.CTkFont(size=12, weight="bold"),
+                text_color="#d97706", anchor="w",
+            ).grid(row=linha, column=0, padx=20, pady=(0, 4), sticky="w")
+            linha += 1
+
+        # --- Descrição ---
+        descricao = (p.get("descricao") or "").strip()
+        if descricao:
+            ctk.CTkLabel(
+                popup, text="Descrição:",
+                font=ctk.CTkFont(size=12, weight="bold"),
+                text_color="#555555", anchor="w",
+            ).grid(row=linha, column=0, padx=20, pady=(0, 2), sticky="w")
+            linha += 1
+
+            caixa = ctk.CTkTextbox(
+                popup, height=65, corner_radius=8,
+                fg_color="#f5f5f5", border_width=0,
+                font=ctk.CTkFont(size=12),
+            )
+            caixa.insert("1.0", descricao)
+            caixa.configure(state="disabled")
+            caixa.grid(row=linha, column=0, padx=16, pady=(0, 8), sticky="ew")
+            linha += 1
+
+        # --- Botão Fechar ---
+        ctk.CTkButton(
+            popup, text="Fechar", height=34,
+            fg_color="#888888", hover_color="#666666",
+            font=ctk.CTkFont(size=12, weight="bold"),
+            command=popup.destroy,
+        ).grid(row=linha, column=0, padx=16, pady=(4, 16), sticky="ew")
 
     def _atualizar_cores_filtro(self):
         """Aplica cor de destaque (escura) ao botão do filtro atualmente ativo."""

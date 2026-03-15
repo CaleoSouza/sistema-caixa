@@ -196,7 +196,7 @@ class ClienteForm(ctk.CTkFrame):
             command=self._excluir_foto,
         ).grid(row=0, column=1)
 
-        ctk.CTkLabel(col, text="Imagem tamanho máximo 1mb",
+        ctk.CTkLabel(col, text="Imagem tamanho máximo 2mb",
                      font=ctk.CTkFont(size=10), text_color="#888888").grid(
             row=3, column=0, columnspan=2, sticky="w", pady=(4, 0))
 

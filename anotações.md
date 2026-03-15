@@ -333,6 +333,33 @@ Repositório: https://github.com/CaleoSouza/sistema-caixa
       - Placeholder "📦 Sem imagem" mantido quando não há nenhuma foto
 - [x] Métodos auxiliares: `_exibir_imagem()`, `_img_anterior()`, `_img_proxima()`
 
+#### Feat: Preview de produto no Carrinho (carrinho_view.py)
+- [x] Nome do produto na lista "Produtos Disponíveis" tornou-se clicável (sublinhado, cursor hand2)
+- [x] Popup `CTkToplevel` com nome, carrossel de imagens (‹ ›), data de validade e descrição
+- [x] Setas ‹ › ocultas automaticamente quando há apenas 1 imagem; contador "N / total" exibido
+- [x] `listar_produtos()` atualizado: SELECT inclui `descricao`, `imagem2`, `imagem3`
+
+#### Fix: Limite de upload de imagens aumentado de 1 MB para 2 MB
+- [x] `controllers/produto_controller.py` — validação `os.path.getsize > 2 * 1024 * 1024`
+- [x] `views/produto_form.py` — validação no `_escolher_imagem()` + texto da legenda
+- [x] `views/cliente_form.py` — texto da legenda atualizado para "2mb"
+
+#### Feat: Coluna Taxa/Desc. no Histórico do Dia (relatorios_view.py)
+- [x] Query `rows_itens` ampliada: `taxa_cartao`, `desconto`, `total_final` da tabela `vendas`
+- [x] Lógica de cálculo por item (proporcional ao peso do item na venda):
+      ```
+      total_bruto_venda = total_final + desconto
+      proporcao         = subtotal_item / total_bruto_venda
+      item_apos_desconto = proporcao × total_final
+      item_liquido       = item_apos_desconto × (1 - taxa_cartao%)   # só cartão
+      taxa_desc          = subtotal_item − item_liquido
+      ```
+- [x] Coluna "Taxa/Desc." inserida entre Preço e Total (col=5); valor em vermelho quando > 0
+- [x] Campo "Total" agora exibe `item_liquido` (valor real líquido), não mais o subtotal bruto
+- [x] Despesas e Erros de Caixa exibem "#" na coluna Taxa/Desc.
+- [x] Coluna Ações movida para coluna 8 (era 7); separador do cabeçalho atualizado para columnspan=9
+- [x] Fix cálculo: desconto e taxa do cartão eram aplicados separadamente; agora aplicados em cascata
+
 ### Etapa 7 - Configurações
 - [ ] `views/configuracoes_view.py` — nome da empresa, logo, backup do banco de dados
 

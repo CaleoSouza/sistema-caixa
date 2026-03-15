@@ -264,7 +264,7 @@ class ProdutoForm(ctk.CTkFrame):
                 command=lambda i=idx: self._excluir_imagem(i),
             ).grid(row=0, column=1)
 
-        ctk.CTkLabel(col, text="Imagem tamanho máximo 1mb cada",
+        ctk.CTkLabel(col, text="Imagem tamanho máximo 2mb cada",
                      font=ctk.CTkFont(size=10), text_color="#888888").grid(
             row=10, column=0, sticky="w", pady=(4, 0))
 
@@ -344,10 +344,10 @@ class ProdutoForm(ctk.CTkFrame):
         if not caminho:
             return
 
-        if os.path.getsize(caminho) > 1 * 1024 * 1024:
+        if os.path.getsize(caminho) > 2 * 1024 * 1024:
             messagebox.showwarning(
                 "Imagem muito grande",
-                "A imagem selecionada excede 1 MB.\nPor favor escolha uma imagem menor.",
+                "A imagem selecionada excede 2 MB.\nPor favor escolha uma imagem menor.",
             )
             return
 

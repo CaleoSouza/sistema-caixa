@@ -54,7 +54,7 @@ def listar_produtos(busca: str = "") -> list:
         rows = conn.execute(
             """SELECT id, nome, categoria, fornecedor, preco, preco_custo,
                       quantidade, estoque_minimo, codigo_barras,
-                      data_validade, imagem
+                      data_validade, imagem, imagem2, imagem3, descricao
                FROM produtos
                WHERE ativo = 1
                  AND (nome LIKE ? OR categoria LIKE ? OR codigo_barras LIKE ?
@@ -66,7 +66,7 @@ def listar_produtos(busca: str = "") -> list:
         rows = conn.execute(
             """SELECT id, nome, categoria, fornecedor, preco, preco_custo,
                       quantidade, estoque_minimo, codigo_barras,
-                      data_validade, imagem
+                      data_validade, imagem, imagem2, imagem3, descricao
                FROM produtos
                WHERE ativo = 1
                ORDER BY nome""",

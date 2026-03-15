@@ -162,12 +162,12 @@ def salvar_imagem_produto(
     """
     Copia e redimensiona a imagem para imagens/produtos/.
     Retorna (nome_arquivo, mensagem). nome_arquivo é None em caso de erro.
-    Tamanho máximo aceito: 1 MB.
+    Tamanho máximo aceito: 2 MB.
     O parâmetro slot (1, 2 ou 3) diferencia os nomes de arquivo de cada foto.
     """
     # Verificar tamanho antes de abrir
-    if os.path.getsize(caminho_origem) > 1 * 1024 * 1024:
-        return None, "Imagem excede o tamanho máximo permitido de 1 MB."
+    if os.path.getsize(caminho_origem) > 2 * 1024 * 1024:
+        return None, "Imagem excede o tamanho máximo permitido de 2 MB."
 
     try:
         os.makedirs(PASTA_IMAGENS_PRODUTOS, exist_ok=True)
