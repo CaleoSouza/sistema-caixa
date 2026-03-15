@@ -310,6 +310,29 @@ Repositório: https://github.com/CaleoSouza/sistema-caixa
 - [x] Tema totalmente preto e branco (sem cores RGB) para impressão em qualquer impressora
 - [x] imports adicionados: `os`, `tempfile`, `webbrowser`
 
+### Sessão 14/03/2026 — Produtos com 3 Fotos + Navegação no Detalhe
+
+#### Feat: 3 fotos por produto (database.py + produto_model.py + produto_controller.py + produto_form.py)
+- [x] `database.py` — colunas `imagem2 TEXT` e `imagem3 TEXT` adicionadas à tabela `produtos` via `_migrar_tabelas()`
+- [x] `models/produto_model.py` — `inserir_produto()` e `atualizar_produto()` incluem `imagem2` e `imagem3` no SQL
+- [x] `controllers/produto_controller.py` — `salvar_imagem_produto()` recebe parâmetro `slot: int = 1`:
+      - Arquivo salvo como `prod_{sufixo}_{slug}_f{slot}.ext` (ex: `prod_5_album_f2.jpg`)
+- [x] `views/produto_form.py` — UI reformulada para 3 slots de foto verticais:
+      - `_imagem_origens: list[str | None]` e `_imagem_atuais: list[str | None]` substituem variáveis únicas
+      - Cada slot: preview 130×90 à esquerda + label "Foto N" + botões "Adicionar Foto" / "Excluir" à direita
+      - `_preencher_dados()` carrega `imagem`, `imagem2`, `imagem3` nos respectivos slots
+      - `_escolher_imagem(slot)`, `_excluir_imagem(slot)`, `_mostrar_preview(caminho, slot)` com suporte a slot
+      - `_salvar()` processa loop de 3 slots, monta dicionário com `imagem`, `imagem2`, `imagem3`
+
+#### Feat: Navegação de imagens em Detalhe do Produto (produto_detalhe.py)
+- [x] `_criar_card_imagem()` reescrita com suporte a carrossel:
+      - Coleta imagens disponíveis: `imagem`, `imagem2`, `imagem3` (apenas arquivos que existem no disco)
+      - Botões `‹` e `›` nas laterais para navegar (circular: última → primeira)
+      - Contador `"N / total"` exibido abaixo da imagem quando há mais de 1
+      - Setas são ocultadas automaticamente se houver apenas 1 imagem
+      - Placeholder "📦 Sem imagem" mantido quando não há nenhuma foto
+- [x] Métodos auxiliares: `_exibir_imagem()`, `_img_anterior()`, `_img_proxima()`
+
 ### Etapa 7 - Configurações
 - [ ] `views/configuracoes_view.py` — nome da empresa, logo, backup do banco de dados
 

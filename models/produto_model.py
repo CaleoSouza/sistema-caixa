@@ -172,8 +172,9 @@ def inserir_produto(dados: dict) -> int:
     cursor = conn.execute(
         """INSERT INTO produtos
                (nome, descricao, categoria, fornecedor, preco, preco_custo,
-                quantidade, estoque_minimo, codigo_barras, data_validade, imagem)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                quantidade, estoque_minimo, codigo_barras, data_validade,
+                imagem, imagem2, imagem3)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
         (
             dados.get("nome", ""),
             dados.get("descricao", ""),
@@ -186,6 +187,8 @@ def inserir_produto(dados: dict) -> int:
             dados.get("codigo_barras") or None,
             dados.get("data_validade") or None,
             dados.get("imagem") or None,
+            dados.get("imagem2") or None,
+            dados.get("imagem3") or None,
         ),
     )
     conn.commit()
@@ -201,7 +204,8 @@ def atualizar_produto(produto_id: int, dados: dict) -> bool:
         """UPDATE produtos SET
                nome = ?, descricao = ?, categoria = ?, fornecedor = ?,
                preco = ?, preco_custo = ?, quantidade = ?, estoque_minimo = ?,
-               codigo_barras = ?, data_validade = ?, imagem = ?,
+               codigo_barras = ?, data_validade = ?,
+               imagem = ?, imagem2 = ?, imagem3 = ?,
                atualizado_em = datetime('now','localtime')
            WHERE id = ? AND ativo = 1""",
         (
@@ -216,6 +220,8 @@ def atualizar_produto(produto_id: int, dados: dict) -> bool:
             dados.get("codigo_barras") or None,
             dados.get("data_validade") or None,
             dados.get("imagem") or None,
+            dados.get("imagem2") or None,
+            dados.get("imagem3") or None,
             produto_id,
         ),
     )

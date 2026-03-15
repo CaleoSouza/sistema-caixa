@@ -128,36 +128,109 @@ class ProdutoDetalhe(ctk.CTkFrame):
         ).grid(row=0, column=3)
 
     # ------------------------------------------------------------------
-    # Card esquerdo: imagem do produto
+    # Card esquerdo: imagem do produto (com navegação ← →)
     # ------------------------------------------------------------------
 
     def _criar_card_imagem(self, pai, p: dict):
         card = ctk.CTkFrame(pai, fg_color="white", corner_radius=12)
         card.grid(row=0, column=0, padx=(0, 12), sticky="nsew")
-        card.grid_columnconfigure(0, weight=1)
+        card.grid_columnconfigure(1, weight=1)
 
-        imagem_nome = p.get("imagem")
-        if imagem_nome:
-            caminho = os.path.join(PASTA_IMAGENS_PRODUTOS, imagem_nome)
-            try:
-                img = Image.open(caminho)
-                img.thumbnail(_PREVIEW_SIZE, Image.LANCZOS)
-                ctk_img = ctk.CTkImage(light_image=img, size=(img.width, img.height))
-                lbl = ctk.CTkLabel(card, image=ctk_img, text="")
-                lbl._image = ctk_img  # evita garbage collection
-                lbl.grid(row=0, column=0, padx=20, pady=20)
-                return
-            except Exception:
-                pass  # fallback para placeholder abaixo
+        # Coleta imagens disponíveis
+        self._imgs_caminhos: list[str] = []
+        for chave in ("imagem", "imagem2", "imagem3"):
+            nome = p.get(chave)
+            if nome:
+                caminho = os.path.join(PASTA_IMAGENS_PRODUTOS, nome)
+                if os.path.isfile(caminho):
+                    self._imgs_caminhos.append(caminho)
 
-        # Placeholder sem imagem
-        ctk.CTkLabel(
-            card,
-            text="📦\nSem imagem",
-            font=ctk.CTkFont(size=16),
-            text_color="#cccccc",
-            justify="center",
-        ).grid(row=0, column=0, padx=20, pady=20)
+        self._img_idx = 0
+
+        # Label central de imagem / placeholder
+        self._lbl_img = ctk.CTkLabel(card, text="", width=220, height=220)
+        self._lbl_img.grid(row=0, column=1, padx=10, pady=(20, 4))
+
+        # Botões de navegação ← →
+        self._btn_ant = ctk.CTkButton(
+            card, text="‹", width=30, height=60,
+            fg_color="#d0d0d0", hover_color="#aaaaaa",
+            text_color="#333333",
+            font=ctk.CTkFont(size=22, weight="bold"),
+            corner_radius=8,
+            command=self._img_anterior,
+        )
+        self._btn_ant.grid(row=0, column=0, padx=(12, 0), pady=20)
+
+        self._btn_prox = ctk.CTkButton(
+            card, text="›", width=30, height=60,
+            fg_color="#d0d0d0", hover_color="#aaaaaa",
+            text_color="#333333",
+            font=ctk.CTkFont(size=22, weight="bold"),
+            corner_radius=8,
+            command=self._img_proxima,
+        )
+        self._btn_prox.grid(row=0, column=2, padx=(0, 12), pady=20)
+
+        # Contador  "1 / 3"
+        self._lbl_contador = ctk.CTkLabel(
+            card, text="",
+            font=ctk.CTkFont(size=11),
+            text_color="#888888",
+        )
+        self._lbl_contador.grid(row=1, column=0, columnspan=3, pady=(0, 12))
+
+        # Exibe a primeira imagem (ou placeholder)
+        self._exibir_imagem()
+
+    def _exibir_imagem(self):
+        """Atualiza o label de imagem de acordo com o índice atual."""
+        if not self._imgs_caminhos:
+            # Sem imagem
+            self._lbl_img.configure(
+                image=None,
+                text="📦\nSem imagem",
+                font=ctk.CTkFont(size=16),
+                text_color="#cccccc",
+            )
+            self._lbl_contador.configure(text="")
+            self._btn_ant.grid_remove()
+            self._btn_prox.grid_remove()
+            return
+
+        total = len(self._imgs_caminhos)
+
+        # Esconde setas se só há 1 imagem
+        if total <= 1:
+            self._btn_ant.grid_remove()
+            self._btn_prox.grid_remove()
+        else:
+            self._btn_ant.grid()
+            self._btn_prox.grid()
+
+        # Carrega e exibe a imagem
+        caminho = self._imgs_caminhos[self._img_idx]
+        try:
+            img = Image.open(caminho)
+            img.thumbnail(_PREVIEW_SIZE, Image.LANCZOS)
+            ctk_img = ctk.CTkImage(light_image=img, size=(img.width, img.height))
+            self._lbl_img.configure(image=ctk_img, text="")
+            self._lbl_img._image = ctk_img  # evita garbage collection
+        except Exception:
+            self._lbl_img.configure(image=None, text="Erro ao carregar", text_color="#e53935")
+
+        # Atualiza contador
+        self._lbl_contador.configure(text=f"{self._img_idx + 1} / {total}" if total > 1 else "")
+
+    def _img_anterior(self):
+        if self._imgs_caminhos:
+            self._img_idx = (self._img_idx - 1) % len(self._imgs_caminhos)
+            self._exibir_imagem()
+
+    def _img_proxima(self):
+        if self._imgs_caminhos:
+            self._img_idx = (self._img_idx + 1) % len(self._imgs_caminhos)
+            self._exibir_imagem()
 
     # ------------------------------------------------------------------
     # Card direito: informações do produto

@@ -61,9 +61,10 @@ class ProdutoForm(ctk.CTkFrame):
 
         self.controller  = controller
         self.produto_id  = produto_id
-        self.on_voltar   = on_voltar              # callback: volta para listagem
-        self._imagem_origem: str | None = None    # caminho temporário escolhido
-        self._imagem_atual:  str | None = None    # nome do arquivo já salvo no banco
+        self.on_voltar   = on_voltar
+        # Listas de 3 slots: índices 0, 1, 2 → foto 1, 2, 3
+        self._imagem_origens: list[str | None] = [None, None, None]
+        self._imagem_atuais:  list[str | None] = [None, None, None]
 
         # Layout: título (fixo) | painel (expande) | botões (fixo)
         self.grid_columnconfigure(0, weight=1)
@@ -208,49 +209,64 @@ class ProdutoForm(ctk.CTkFrame):
                      font=ctk.CTkFont(size=10), text_color="#888888").grid(
             row=7, column=0, sticky="nw", pady=(2, 8))
 
-        # --- Imagem do Produto ---
-        ctk.CTkLabel(col, text="Adicionar Imagem",
+        # --- Imagem do Produto (3 fotos opcionais) ---
+        ctk.CTkLabel(col, text="Fotos do Produto (opcional, máx. 3)",
                      font=ctk.CTkFont(size=13), text_color="#333333").grid(
-            row=8, column=0, sticky="w", pady=(4, 4))
+            row=8, column=0, sticky="w", pady=(4, 6))
 
-        # Área de preview com altura fixa
-        self.frame_imagem = ctk.CTkFrame(
-            col, fg_color="white", border_width=1, border_color="#cccccc",
-            corner_radius=8, height=200)
-        self.frame_imagem.grid(row=9, column=0, sticky="ew")
-        self.frame_imagem.grid_propagate(False)
-        self.frame_imagem.grid_columnconfigure(0, weight=1)
-        self.frame_imagem.grid_rowconfigure(0, weight=1)
+        self._lbl_previews: list[ctk.CTkLabel] = []
 
-        self.lbl_preview = ctk.CTkLabel(
-            self.frame_imagem, text="Sem imagem",
-            text_color="#bbbbbb", font=ctk.CTkFont(size=13))
-        self.lbl_preview.grid(row=0, column=0)
+        fotos_frame = ctk.CTkFrame(col, fg_color="transparent")
+        fotos_frame.grid(row=9, column=0, sticky="ew")
+        fotos_frame.grid_columnconfigure(0, weight=1)
 
-        # Botões de imagem + aviso
-        frame_btn_img = ctk.CTkFrame(col, fg_color="transparent")
-        frame_btn_img.grid(row=10, column=0, sticky="ew", pady=(6, 0))
-        frame_btn_img.grid_columnconfigure(0, weight=1)
+        for idx in range(3):
+            slot = ctk.CTkFrame(fotos_frame, fg_color="transparent")
+            slot.grid(row=idx, column=0, pady=(0 if idx == 0 else 8, 0), sticky="ew")
+            slot.grid_columnconfigure(1, weight=1)
 
-        ctk.CTkLabel(frame_btn_img, text="Imagem tamanho máximo 1mb",
+            # Preview (coluna 0 — tamanho fixo)
+            frame_prev = ctk.CTkFrame(
+                slot, fg_color="white", border_width=1, border_color="#cccccc",
+                corner_radius=8, width=130, height=90)
+            frame_prev.grid(row=0, column=0, rowspan=2, sticky="ns")
+            frame_prev.grid_propagate(False)
+            frame_prev.grid_columnconfigure(0, weight=1)
+            frame_prev.grid_rowconfigure(0, weight=1)
+
+            lbl = ctk.CTkLabel(
+                frame_prev, text=f"Foto {idx + 1}",
+                text_color="#bbbbbb", font=ctk.CTkFont(size=11))
+            lbl.grid(row=0, column=0)
+            self._lbl_previews.append(lbl)
+
+            # Label do slot (coluna 1)
+            ctk.CTkLabel(
+                slot, text=f"Foto {idx + 1}",
+                font=ctk.CTkFont(size=12, weight="bold"),
+                text_color="#333333",
+            ).grid(row=0, column=1, padx=(10, 0), sticky="sw")
+
+            # Botões Adicionar / Excluir (coluna 1)
+            fr_btn = ctk.CTkFrame(slot, fg_color="transparent")
+            fr_btn.grid(row=1, column=1, padx=(10, 0), sticky="nw")
+
+            ctk.CTkButton(
+                fr_btn, text="Adicionar Foto", height=30, width=130,
+                font=ctk.CTkFont(size=11, weight="bold"),
+                command=lambda i=idx: self._escolher_imagem(i),
+            ).grid(row=0, column=0, padx=(0, 6))
+
+            ctk.CTkButton(
+                fr_btn, text="Excluir", height=30, width=90,
+                fg_color="#e53935", hover_color="#c62828",
+                font=ctk.CTkFont(size=11, weight="bold"),
+                command=lambda i=idx: self._excluir_imagem(i),
+            ).grid(row=0, column=1)
+
+        ctk.CTkLabel(col, text="Imagem tamanho máximo 1mb cada",
                      font=ctk.CTkFont(size=10), text_color="#888888").grid(
-            row=0, column=0, sticky="w")
-
-        frame_btns = ctk.CTkFrame(frame_btn_img, fg_color="transparent")
-        frame_btns.grid(row=0, column=1, sticky="e")
-
-        ctk.CTkButton(
-            frame_btns, text="Adicionar", width=90, height=30,
-            font=ctk.CTkFont(size=12, weight="bold"),
-            command=self._escolher_imagem,
-        ).grid(row=0, column=0, padx=(0, 6))
-
-        ctk.CTkButton(
-            frame_btns, text="Excluir", width=80, height=30,
-            fg_color="#e53935", hover_color="#c62828",
-            font=ctk.CTkFont(size=12, weight="bold"),
-            command=self._excluir_imagem,
-        ).grid(row=0, column=1)
+            row=10, column=0, sticky="w", pady=(4, 0))
 
     # ------------------------------------------------------------------
     # Botões Cancelar / Adicionar (ou Salvar)
@@ -298,11 +314,14 @@ class ProdutoForm(ctk.CTkFrame):
         self.text_descricao.delete("1.0", "end")
         self.text_descricao.insert("1.0", descricao)
 
-        # Imagem existente
-        self._imagem_atual = produto.get("imagem") or None
-        if self._imagem_atual:
-            caminho = os.path.join(PASTA_IMAGENS_PRODUTOS, self._imagem_atual)
-            self._mostrar_preview(caminho)
+        # Imagens existentes (3 slots)
+        chaves = ["imagem", "imagem2", "imagem3"]
+        for idx, chave in enumerate(chaves):
+            nome = produto.get(chave) or None
+            self._imagem_atuais[idx] = nome
+            if nome:
+                caminho = os.path.join(PASTA_IMAGENS_PRODUTOS, nome)
+                self._mostrar_preview(caminho, idx)
 
     @staticmethod
     def _set_entry(entry: ctk.CTkEntry, valor: str):
@@ -313,10 +332,10 @@ class ProdutoForm(ctk.CTkFrame):
     # Ações de imagem
     # ------------------------------------------------------------------
 
-    def _escolher_imagem(self):
-        """Abre diálogo para selecionar imagem do produto."""
+    def _escolher_imagem(self, slot: int = 0):
+        """Abre diálogo para selecionar imagem do produto para o slot indicado."""
         caminho = filedialog.askopenfilename(
-            title="Selecionar imagem do produto",
+            title=f"Selecionar foto {slot + 1} do produto",
             filetypes=[
                 ("Imagens", "*.jpg *.jpeg *.png *.bmp *.gif *.webp"),
                 ("Todos os arquivos", "*.*"),
@@ -325,7 +344,6 @@ class ProdutoForm(ctk.CTkFrame):
         if not caminho:
             return
 
-        # Verificar tamanho máximo (1 MB)
         if os.path.getsize(caminho) > 1 * 1024 * 1024:
             messagebox.showwarning(
                 "Imagem muito grande",
@@ -333,25 +351,27 @@ class ProdutoForm(ctk.CTkFrame):
             )
             return
 
-        self._imagem_origem = caminho
-        self._mostrar_preview(caminho)
+        self._imagem_origens[slot] = caminho
+        self._mostrar_preview(caminho, slot)
 
-    def _excluir_imagem(self):
-        """Remove a imagem selecionada (não exclui o arquivo ainda — só ao salvar)."""
-        self._imagem_origem = None
-        self._imagem_atual = None
-        self.lbl_preview.configure(image=None, text="Sem imagem")
+    def _excluir_imagem(self, slot: int = 0):
+        """Remove a imagem do slot indicado (apaga do disco se já estava salva)."""
+        if self._imagem_atuais[slot]:
+            excluir_imagem_produto(self._imagem_atuais[slot])
+            self._imagem_atuais[slot] = None
+        self._imagem_origens[slot] = None
+        self._lbl_previews[slot].configure(image=None, text=f"Foto {slot + 1}")
 
-    def _mostrar_preview(self, caminho: str):
-        """Exibe miniatura da imagem no painel de preview."""
+    def _mostrar_preview(self, caminho: str, slot: int = 0):
+        """Exibe miniatura da imagem no painel de preview do slot."""
         try:
             img = Image.open(caminho)
-            img.thumbnail((220, 150), Image.LANCZOS)
+            img.thumbnail((130, 90), Image.LANCZOS)
             ctk_img = ctk.CTkImage(light_image=img, size=(img.width, img.height))
-            self.lbl_preview.configure(image=ctk_img, text="")
-            self.lbl_preview._image = ctk_img  # evita garbage collection
+            self._lbl_previews[slot].configure(image=ctk_img, text="")
+            self._lbl_previews[slot]._image = ctk_img
         except Exception:
-            self.lbl_preview.configure(image=None, text="Erro ao carregar imagem")
+            self._lbl_previews[slot].configure(image=None, text="Erro")
 
     # ------------------------------------------------------------------
     # Geração de código de barras
@@ -431,43 +451,44 @@ class ProdutoForm(ctk.CTkFrame):
                 messagebox.showerror("Erro", str(e))
                 return
 
-        # --- Processar imagem ---
-        imagem_nome = self._imagem_atual  # mantém a existente por padrão
-
-        if self._imagem_origem:
-            # Salva nova imagem (arquivo físico)
-            nome_arq, msg_img = salvar_imagem_produto(
-                self._imagem_origem,
-                nome_produto=nome,
-                produto_id=self.produto_id,
-            )
-            if nome_arq is None:
-                messagebox.showwarning("Imagem", msg_img)
-                return
-            # Se havia imagem anterior diferente, remove o arquivo antigo
-            if self._imagem_atual and self._imagem_atual != nome_arq:
-                excluir_imagem_produto(self._imagem_atual)
-            imagem_nome = nome_arq
-        elif self._imagem_atual is None and self.produto_id:
-            # Usuário clicou "Excluir" — remove arquivo físico
-            produto_original = obter_por_id(self.produto_id)
-            if produto_original and produto_original.get("imagem"):
-                excluir_imagem_produto(produto_original["imagem"])
-            imagem_nome = None
+        # --- Processar as 3 imagens ---
+        chaves = ["imagem", "imagem2", "imagem3"]
+        imagens_nomes: list[str | None] = []
+        for idx in range(3):
+            if self._imagem_origens[idx]:
+                # Nova imagem selecionada — salva no disco
+                nome_arq, msg_img = salvar_imagem_produto(
+                    self._imagem_origens[idx],
+                    nome_produto=nome,
+                    produto_id=self.produto_id,
+                    slot=idx + 1,
+                )
+                if nome_arq is None:
+                    messagebox.showwarning(f"Foto {idx + 1}", msg_img)
+                    return
+                # Remove foto anterior diferente
+                if self._imagem_atuais[idx] and self._imagem_atuais[idx] != nome_arq:
+                    excluir_imagem_produto(self._imagem_atuais[idx])
+                imagens_nomes.append(nome_arq)
+            else:
+                # Mantém ou deixa None (foi excluída)
+                imagens_nomes.append(self._imagem_atuais[idx])
 
         # --- Montar dicionário e salvar ---
         dados = {
-            "nome":          nome,
-            "descricao":     descricao,
-            "categoria":     categoria,
-            "fornecedor":    fornecedor,
-            "preco":         preco,
-            "preco_custo":   0.0,   # campo reservado para futuro
-            "quantidade":    quantidade,
+            "nome":           nome,
+            "descricao":      descricao,
+            "categoria":      categoria,
+            "fornecedor":     fornecedor,
+            "preco":          preco,
+            "preco_custo":    0.0,
+            "quantidade":     quantidade,
             "estoque_minimo": 5,
-            "codigo_barras": codigo_barras,
-            "data_validade": data_validade or None,
-            "imagem":        imagem_nome,
+            "codigo_barras":  codigo_barras,
+            "data_validade":  data_validade or None,
+            "imagem":         imagens_nomes[0],
+            "imagem2":        imagens_nomes[1],
+            "imagem3":        imagens_nomes[2],
         }
 
         ok, msg = salvar(dados, self.produto_id)

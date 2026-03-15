@@ -53,6 +53,8 @@ def criar_tabelas():
             codigo_barras    TEXT    UNIQUE,
             data_validade    TEXT,
             imagem           TEXT,
+            imagem2          TEXT,
+            imagem3          TEXT,
             ativo            INTEGER          DEFAULT 1,
             criado_em        TEXT             DEFAULT (datetime('now','localtime')),
             atualizado_em    TEXT             DEFAULT (datetime('now','localtime'))
@@ -234,7 +236,12 @@ def _migrar_tabelas(conn):
     colunas_produtos = [
         row[1] for row in conn.execute("PRAGMA table_info(produtos)")
     ]
-    for nome, tipo in [("fornecedor", "TEXT"), ("data_validade", "TEXT")]:
+    for nome, tipo in [
+        ("fornecedor", "TEXT"),
+        ("data_validade", "TEXT"),
+        ("imagem2", "TEXT"),
+        ("imagem3", "TEXT"),
+    ]:
         if nome not in colunas_produtos:
             conn.execute(f"ALTER TABLE produtos ADD COLUMN {nome} {tipo}")
 

@@ -61,11 +61,10 @@ class ClienteForm(ctk.CTkFrame):
             text_color="#1f6aa5",
         ).grid(row=0, column=0, padx=30, pady=(24, 10), sticky="w")
 
-        # Painel central
-        painel = ctk.CTkFrame(self, fg_color="#d9d9d9", corner_radius=12)
+        # Painel central com scroll vertical
+        painel = ctk.CTkScrollableFrame(self, fg_color="#d9d9d9", corner_radius=12)
         painel.grid(row=1, column=0, padx=30, pady=(0, 10), sticky="nsew")
         painel.grid_columnconfigure((0, 1, 2), weight=1)
-        painel.grid_rowconfigure(0, weight=1)
 
         self._criar_coluna_esquerda(painel)
         self._criar_coluna_central(painel)
@@ -132,7 +131,7 @@ class ClienteForm(ctk.CTkFrame):
         col = ctk.CTkFrame(pai, fg_color="transparent")
         col.grid(row=0, column=1, padx=10, pady=16, sticky="nsew")
         col.grid_columnconfigure(0, weight=1)
-        col.grid_rowconfigure(3, weight=1)
+        col.grid_rowconfigure(3, weight=0)
 
         # Cidade
         ctk.CTkLabel(col, text="Cidade",
@@ -150,7 +149,7 @@ class ClienteForm(ctk.CTkFrame):
         self.text_endereco = ctk.CTkTextbox(
             col, fg_color="white", border_width=1,
             border_color="#cccccc", font=ctk.CTkFont(size=13),
-            corner_radius=8,
+            corner_radius=8, height=100,
         )
         self.text_endereco.grid(row=3, column=0, sticky="nsew")
 
@@ -333,6 +332,11 @@ class ClienteForm(ctk.CTkFrame):
             self.lbl_preview.configure(image=None, text="Sem foto")
 
     def _excluir_foto(self):
+        # Remove o arquivo do disco se já estava salvo
+        if self._foto_atual:
+            excluir_foto_cliente(self._foto_atual)
+            self._foto_atual = None
+        # Descarta também seleção pendente (ainda não salva)
         self._foto_origem = None
         self.lbl_preview.configure(image=None, text="Sem foto")
 

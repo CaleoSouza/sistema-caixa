@@ -157,11 +157,13 @@ def salvar_imagem_produto(
     caminho_origem: str,
     nome_produto: str = "produto",
     produto_id: int = None,
+    slot: int = 1,
 ) -> tuple[str | None, str]:
     """
     Copia e redimensiona a imagem para imagens/produtos/.
     Retorna (nome_arquivo, mensagem). nome_arquivo é None em caso de erro.
     Tamanho máximo aceito: 1 MB.
+    O parâmetro slot (1, 2 ou 3) diferencia os nomes de arquivo de cada foto.
     """
     # Verificar tamanho antes de abrir
     if os.path.getsize(caminho_origem) > 1 * 1024 * 1024:
@@ -170,11 +172,11 @@ def salvar_imagem_produto(
     try:
         os.makedirs(PASTA_IMAGENS_PRODUTOS, exist_ok=True)
 
-        # Montar nome de arquivo único
+        # Montar nome de arquivo único incluindo o slot
         ext = os.path.splitext(caminho_origem)[1].lower() or ".png"
         sufixo = str(produto_id) if produto_id else "novo"
         slug = nome_produto[:30].replace(" ", "_").lower()
-        nome_arquivo = f"prod_{sufixo}_{slug}{ext}"
+        nome_arquivo = f"prod_{sufixo}_{slug}_f{slot}{ext}"
         destino = os.path.join(PASTA_IMAGENS_PRODUTOS, nome_arquivo)
 
         # Redimensionar para no máximo 400x400 preservando proporções
