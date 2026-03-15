@@ -112,15 +112,19 @@ Etapa 5 - Despesas ✅ (concluída em 12/03/2026)
   - Listagem com filtros por data e categoria
   - Relatório de despesas
 
-Etapa 6 - Relatórios ✅ Fase 1+2 (concluída em 13/03/2026)
+Etapa 6 - Relatórios ✅ Fase 1+2+Impressão (concluída em 14/03/2026)
   - Fase 1: cards Fechamento do Dia (tkcalendar DateEntry) e Fechamento do Mês (CTkOptionMenu + CTkEntry ano) com Resumo Rápido
   - Fase 2 — Fechamento do Dia completo:
-    * 9 cards financeiros em 2 linhas: Dinheiro | Cartão(líquido) | Despesas Pagas(Dinheiro) | Despesas Dia(total) | Erro de Caixa | PIX | À Prazo | Saldo Líquido Caixa | Saldo Total | Saldo Total Líquido (card verde destaque)
-    * Tabela cronológica com cabeçalho fixo + CTkScrollableFrame para linhas (height=280)
-    * Itens de venda (preto) e despesas do dia (vermelho) misturados cronologicamente
-    * Ações ✏️🗑️ por linha: editar item de venda (popup qty+preço) ou despesa (DespesaForm); excluir restaura estoque
-    * Botão ← Voltar e 🖨 Imprimir (stub)
+    * 10 cards financeiros: Dinheiro | Cartão(líquido) | Despesas Pagas(Dinheiro) | Despesas Dia(total) | Erro de Caixa | PIX | À Prazo | Saldo Líquido Caixa | Saldo Total | Saldo Total Líquido (card verde destaque)
+    * Saldo Líquido (Caixa), Saldo Total e Saldo Total Líquido todos impactados pelo erro_saldo
+    * Erro de Caixa: tabela `erros_caixa` (entrada|saida); popup toggle verde/cinza; timeline com ▲/▼
+    * Tabela cronológica com cabeçalho fixo + CTkScrollableFrame (padrão do sistema)
+    * Itens de venda (preto), despesas do dia (vermelho), erros de caixa (preto=entrada, vermelho=saída)
+    * Ações ✏️🗑️ por linha com edição e exclusão funcionais
+    * Botão 🖨 Imprimir: gera HTML A4 preto e branco, abre no navegador com diálogo de impressão automático
   - REGRA nome_avulso: vendas sem cliente cadastrado salvam nome_avulso TEXT na tabela vendas (carrinho passa quando _modo_sem_cadastro=True); listar_vendas usa COALESCE(nome_avulso, c.nome, 'Sem Cadastro')
+  - REGRA _ver_dia: aceita data_iso/data_br opcionais — quando fornecidos usa direto sem ler widget (necessário após destruição do container)
+  - REGRA _recarregar_dia: sempre chamar _ver_dia(data_iso=..., data_br=...) em vez de set_date() no DateEntry destruído
   - Fase 3 (pendente): Fechamento do Mês com tabela detalhada
 
 Etapa 7 - Configurações

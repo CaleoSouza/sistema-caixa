@@ -273,7 +273,42 @@ Repositório: https://github.com/CaleoSouza/sistema-caixa
 - [x] `main.py` — botão Despesas adicionado na sidebar entre Clientes e Relatórios
 
 ### Etapa 6 - Relatórios
-- [ ] `views/relatorios_view.py` — relatórios de vendas, produtos e clientes
+- [x] `views/relatorios_view.py` — Fase 1+2 concluídas (ver histórico de desenvolvimento)
+
+### Sessão 14/03/2026 — Erro de Caixa, Imprimir, correções
+
+#### Feat: Erro de Caixa — popup, timeline e saldo (relatorios_view.py + database.py)
+- [x] `database.py` — nova tabela `erros_caixa` (id, data, nome, valor, forma_pagamento, tipo entrada|saida, criado_em)
+- [x] `_abrir_erro_caixa(data_iso, data_br)` — popup CTkToplevel 560×480:
+      - Toggle Entrada (verde ativo) / Saída (cinza inativo) com mutable dict `_tipo = {"v": "entrada"}`
+      - Campos: Nome, Valor, Pagamento (CTkOptionMenu)
+      - Botão Adicionar → INSERT erros_caixa → `_recarregar_dia()`
+- [x] Timeline: entradas aparecem em preto (fundo branco), saídas em vermelho (fundo #fff8f8) com `▲ Entrada` / `▼ Saída`
+- [x] Saldo Erro de Caixa = `erro_entrada - erro_saida`; impacta nos 3 saldos:
+      - Saldo Líquido (Caixa) = `Dinheiro − Despesas Pagas + erro_saldo`
+      - Saldo Total = `Dinheiro + Cartão + PIX + erro_saldo`
+      - Saldo Total (Líquido) = `Dinheiro + Cartão(líq) + PIX + erro_saldo`
+- [x] Card Erro de Caixa: título em negrito — `titulo_bold=True` adicionado à função `_card()`
+- [x] `_excluir_registro()` — branch `elif tipo == "erro_caixa"` para DELETE da tabela erros_caixa
+- Commits: `f5341fd`
+
+#### Fix: _recarregar_dia causava erro ao chamar set_date() em widget destruído
+- [x] `_ver_dia()` agora aceita `data_iso` e `data_br` opcionais — se fornecidos, usa direto sem ler widget
+- [x] `_recarregar_dia()` passa a data diretamente para `_ver_dia(data_iso=..., data_br=...)` sem tocar no DateEntry (que pode ter sido destruído quando o container foi reconstruído)
+- Root cause: `_ver_dia()` destrói `self._container` inteiro (incluindo o card com `_de_dia`),
+  então qualquer `.set_date()` posterior falhava com `invalid command name`
+
+#### Feat: Botão Imprimir — HTML A4 preto e branco (relatorios_view.py)
+- [x] `_imprimir_dia(data_iso, data_br)` — gera HTML e abre no navegador padrão:
+      - Re-consulta o banco para obter todos os dados frescos
+      - Layout A4 (`@page size: A4; margin: 18mm`) com CSS puro
+      - Cabeçalho: "RELATÓRIOS" + "Fechamento do Dia DD/MM/AAAA"
+      - Grid 4 colunas de cards: Dinheiro | Cartão(líq) | Despesas Pagas | Despesas Dia | PIX | À Prazo | Saldo Líquido (Caixa) | Saldo Total | Saldo Total Líquido (2 cols, borda preta grossa) | Erro de Caixa
+      - Tabela Histórico: cabeçalho fundo preto/texto branco; linhas pares cinza; despesas/saídas em itálico
+      - `window.onload = () => window.print()` abre diálogo de impressão automaticamente
+      - Arquivo salvo em `tempfile.NamedTemporaryFile(suffix=".html")` e aberto com `webbrowser.open()`
+- [x] Tema totalmente preto e branco (sem cores RGB) para impressão em qualquer impressora
+- [x] imports adicionados: `os`, `tempfile`, `webbrowser`
 
 ### Etapa 7 - Configurações
 - [ ] `views/configuracoes_view.py` — nome da empresa, logo, backup do banco de dados

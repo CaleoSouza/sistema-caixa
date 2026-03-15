@@ -6,6 +6,9 @@ Clicar em "Ver" substituirá o bloco por uma tabela detalhada (próxima etapa).
 
 import datetime
 import logging
+import os
+import tempfile
+import webbrowser
 import customtkinter as ctk
 from tkinter import messagebox
 
@@ -294,21 +297,24 @@ class RelatoriosView(ctk.CTkFrame):
     # ------------------------------------------------------------------
     # Ações dos botões Ver
     # ------------------------------------------------------------------
-    def _ver_dia(self):
-        """Exibe o Fechamento do Dia: cards financeiros + tabela cronológica."""
-        # ── Resolve data selecionada ──────────────────────────────
-        if _TEM_TKCALENDAR:
-            data_obj = self._de_dia.get_date()
-        else:
-            raw = self._entry_dia.get().strip()
-            try:
-                data_obj = datetime.datetime.strptime(raw, "%d/%m/%Y").date()
-            except ValueError:
-                messagebox.showerror("Data inválida", "Use o formato DD/MM/AAAA.")
-                return
+    def _ver_dia(self, data_iso: str = None, data_br: str = None):
+        """Exibe o Fechamento do Dia: cards financeiros + tabela cronológica.
 
-        data_iso = data_obj.strftime("%Y-%m-%d")   # para SQLite
-        data_br  = data_obj.strftime("%d/%m/%Y")   # para exibição
+        Se data_iso/data_br forem fornecidos, usa-os diretamente (sem ler widget).
+        """
+        # ── Resolve data selecionada ──────────────────────────────
+        if data_iso is None or data_br is None:
+            if _TEM_TKCALENDAR:
+                data_obj = self._de_dia.get_date()
+            else:
+                raw = self._entry_dia.get().strip()
+                try:
+                    data_obj = datetime.datetime.strptime(raw, "%d/%m/%Y").date()
+                except ValueError:
+                    messagebox.showerror("Data inválida", "Use o formato DD/MM/AAAA.")
+                    return
+            data_iso = data_obj.strftime("%Y-%m-%d")   # para SQLite
+            data_br  = data_obj.strftime("%d/%m/%Y")   # para exibição
 
         # ── Consultas ao banco ────────────────────────────────────
         conn = conectar()
@@ -388,8 +394,8 @@ class RelatoriosView(ctk.CTkFrame):
         erro_saida   = sum(r["valor"] for r in rows_erros if r["tipo"] == "saida")
         erro_saldo   = erro_entrada - erro_saida   # positivo = sobra, negativo = falta
 
-        saldo_liq_caixa = tot_dinheiro - desp_pagas
-        saldo_total     = tot_dinheiro + tot_cartao_br + tot_pix
+        saldo_liq_caixa = tot_dinheiro - desp_pagas + erro_saldo
+        saldo_total     = tot_dinheiro + tot_cartao_br + tot_pix + erro_saldo
         saldo_total_liq = tot_dinheiro + tot_cartao_lq + tot_pix + erro_saldo
 
         # ── Reconstrói o container ────────────────────────────────
@@ -426,7 +432,7 @@ class RelatoriosView(ctk.CTkFrame):
             hdr, text="🖨 Imprimir", width=120, height=32,
             fg_color="#1f6aa5", hover_color="#1557a0",
             font=ctk.CTkFont(size=12, weight="bold"),
-            command=lambda: messagebox.showinfo("Em breve", "Impressão será implementada em breve."),
+            command=lambda d_i=data_iso, d_b=data_br: self._imprimir_dia(d_i, d_b),
         ).grid(row=0, column=2, padx=(8, 0))
 
         # ── Separador ── ──────────────────────────────────────────
@@ -453,14 +459,15 @@ class RelatoriosView(ctk.CTkFrame):
             cards_frame.grid_columnconfigure(c, weight=1)
 
         def _card(parent, row, col, titulo, valor, cor_valor="#1a1a1a",
-                  subtitulo="", cor_bg="white", rowspan=1, colspan=1):
+                  subtitulo="", cor_bg="white", rowspan=1, colspan=1, titulo_bold=False):
             """Cria um card financeiro padronizado."""
             fr = ctk.CTkFrame(parent, fg_color=cor_bg, corner_radius=10)
             fr.grid(row=row, column=col, rowspan=rowspan, columnspan=colspan,
                     padx=5, pady=5, ipadx=10, ipady=10, sticky="nsew")
             ctk.CTkLabel(
                 fr, text=titulo,
-                font=ctk.CTkFont(size=11), text_color="#666666", anchor="w",
+                font=ctk.CTkFont(size=11, weight="bold" if titulo_bold else "normal"),
+                text_color="#1a1a1a" if titulo_bold else "#666666", anchor="w",
             ).pack(anchor="w", padx=10, pady=(10, 0))
             ctk.CTkLabel(
                 fr, text=formatar_moeda(valor),
@@ -508,7 +515,8 @@ class RelatoriosView(ctk.CTkFrame):
         _card(cards_frame, 1, 1, "📋  Total à Prazo", tot_prazo,
               cor_valor="#7a6000", cor_bg="#fffde7")
         _card(cards_frame, 1, 2, "💰  Saldo Líquido (Caixa)", saldo_liq_caixa,
-              cor_valor="#2e7d32", subtitulo="Dinheiro − Despesas Pagas", cor_bg="#f1f8e9")
+              cor_valor="#2e7d32", subtitulo="Dinheiro − Despesas Pagas", cor_bg="#f1f8e9",
+              titulo_bold=True)
         _card(cards_frame, 1, 3, "🏦  Saldo Total", saldo_total,
               cor_valor="#7a6000", subtitulo="Dinheiro + Cartão + PIX", cor_bg="#fffde7")
 
@@ -688,7 +696,7 @@ class RelatoriosView(ctk.CTkFrame):
         """Popup para registrar entrada ou saída manual no caixa."""
         popup = ctk.CTkToplevel(self)
         popup.title("Adicionar Erro de Caixa")
-        popup.geometry("480x320")
+        popup.geometry("560x480")
         popup.resizable(False, False)
         popup.grab_set()
 
@@ -796,6 +804,267 @@ class RelatoriosView(ctk.CTkFrame):
             command=_adicionar,
         ).pack(padx=24, pady=(10, 0), fill="x")
 
+
+    # ------------------------------------------------------------------
+    # Impressão do Fechamento do Dia
+    # ------------------------------------------------------------------
+    def _imprimir_dia(self, data_iso: str, data_br: str):
+        """Gera um HTML A4 com o Fechamento do Dia e abre no navegador para impressão."""
+        conn = conectar()
+
+        # ── Consultas ─────────────────────────────────────────────
+        rows_vend = conn.execute(
+            """SELECT forma_pagamento,
+                      COALESCE(taxa_cartao, 0.0) AS taxa_cartao,
+                      total_final,
+                      COALESCE(parcelas, 1) AS parcelas
+               FROM vendas WHERE status = 'concluida' AND DATE(criado_em) = ?""",
+            (data_iso,),
+        ).fetchall()
+
+        rows_desp = conn.execute(
+            """SELECT id, descricao, responsavel, valor, forma_pagamento, status
+               FROM despesas
+               WHERE substr(data,7,4)||'-'||substr(data,4,2)||'-'||substr(data,1,2) = ?""",
+            (data_iso,),
+        ).fetchall()
+
+        rows_itens = conn.execute(
+            """SELECT iv.id AS item_id, iv.quantidade, iv.preco_unitario, iv.subtotal,
+                      p.nome AS prod, v.criado_em, v.forma_pagamento, v.parcelas,
+                      COALESCE(c.nome, v.nome_avulso, 'Sem Cadastro') AS nome
+               FROM itens_venda iv
+               JOIN vendas v  ON v.id = iv.venda_id
+               JOIN produtos p ON p.id = iv.produto_id
+               LEFT JOIN clientes c ON c.id = v.cliente_id
+               WHERE v.status = 'concluida' AND DATE(v.criado_em) = ?
+               ORDER BY v.criado_em""",
+            (data_iso,),
+        ).fetchall()
+
+        rows_erros = conn.execute(
+            "SELECT nome, valor, forma_pagamento, tipo FROM erros_caixa WHERE data = ?",
+            (data_iso,),
+        ).fetchall()
+
+        conn.close()
+
+        # ── Totais ────────────────────────────────────────────────
+        tot_dinheiro  = sum(r["total_final"] for r in rows_vend if r["forma_pagamento"] == "dinheiro")
+        tot_cartao_br = sum(r["total_final"] for r in rows_vend if r["forma_pagamento"] == "cartao")
+        tot_cartao_lq = sum(
+            r["total_final"] * (1 - r["taxa_cartao"] / 100)
+            for r in rows_vend if r["forma_pagamento"] == "cartao"
+        )
+        tot_pix    = sum(r["total_final"] for r in rows_vend if r["forma_pagamento"] == "pix")
+        tot_prazo  = sum(r["total_final"] for r in rows_vend if r["forma_pagamento"] == "a_prazo")
+        desp_pagas = sum(r["valor"] for r in rows_desp if r["status"] == "pago" and r["forma_pagamento"] == "Dinheiro")
+        desp_dia   = sum(r["valor"] for r in rows_desp)
+
+        erro_entrada = sum(r["valor"] for r in rows_erros if r["tipo"] == "entrada")
+        erro_saida   = sum(r["valor"] for r in rows_erros if r["tipo"] == "saida")
+        erro_saldo   = erro_entrada - erro_saida
+
+        saldo_liq_caixa = tot_dinheiro - desp_pagas + erro_saldo
+        saldo_total     = tot_dinheiro + tot_cartao_br + tot_pix + erro_saldo
+        saldo_total_liq = tot_dinheiro + tot_cartao_lq + tot_pix + erro_saldo
+
+        def m(v):
+            return formatar_moeda(v)
+
+        def cor_val(v):
+            return "color:#c62828" if v < 0 else "color:#1a1a1a"
+
+        # ── Linhas do histórico ───────────────────────────────────
+        linhas_html = ""
+        for r in rows_itens:
+            hora  = r["criado_em"][11:16] if r["criado_em"] and len(r["criado_em"]) >= 16 else "--"
+            fp    = r["forma_pagamento"]
+            if fp == "cartao" and r["parcelas"] > 1:
+                fp_label = f"Cartão ({r['parcelas']}x)"
+            elif fp == "cartao":   fp_label = "Cartão"
+            elif fp == "dinheiro": fp_label = "Dinheiro"
+            elif fp == "pix":      fp_label = "PIX"
+            elif fp == "a_prazo":  fp_label = "A Prazo"
+            else:                  fp_label = fp
+            linhas_html += f"""<tr>
+                <td>{hora}</td>
+                <td>{r['nome']}</td>
+                <td>{r['prod'] or '—'}</td>
+                <td>{int(r['quantidade'])}</td>
+                <td>{m(r['preco_unitario'])}</td>
+                <td>{m(r['subtotal'])}</td>
+                <td>{fp_label}</td>
+            </tr>"""
+
+        for rd in rows_desp:
+            linhas_html += f"""<tr class="desp">
+                <td>—</td>
+                <td>{rd['responsavel'] or rd['descricao']}</td>
+                <td>{rd['descricao']}</td>
+                <td>#</td><td>#</td>
+                <td>{m(rd['valor'])}</td>
+                <td>{rd['forma_pagamento']}</td>
+            </tr>"""
+
+        for re in rows_erros:
+            cls   = "entrada" if re["tipo"] == "entrada" else "saida"
+            sinal = "▲ Entrada" if re["tipo"] == "entrada" else "▼ Saída"
+            linhas_html += f"""<tr class="{cls}">
+                <td>—</td>
+                <td>{re['nome']}</td>
+                <td>{sinal}</td>
+                <td>#</td><td>#</td>
+                <td>{m(re['valor'])}</td>
+                <td>{re['forma_pagamento']}</td>
+            </tr>"""
+
+        if not linhas_html:
+            linhas_html = '<tr><td colspan="7" style="text-align:center">Nenhum registro encontrado.</td></tr>'
+
+        # ── HTML ──────────────────────────────────────────────────
+        html = f"""<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Fechamento do Dia {data_br}</title>
+<style>
+  @page {{ size: A4; margin: 18mm 18mm 18mm 18mm; }}
+  * {{ box-sizing: border-box; margin: 0; padding: 0; }}
+  body {{ font-family: 'Segoe UI', Arial, sans-serif; font-size: 11pt; color: #000; background: #fff; }}
+
+  h1 {{ font-size: 22pt; font-weight: 900; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }}
+  h2 {{ font-size: 14pt; font-weight: 700; margin: 18px 0 4px; }}
+  h3 {{ font-size: 12pt; font-weight: 700; margin: 14px 0 6px; }}
+
+  /* Cards do resumo */
+  .cards {{ display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 10px; }}
+  .card {{ border: 1.5px solid #999; border-radius: 6px; padding: 10px 12px; background: #fff; }}
+  .card .label {{ font-size: 8.5pt; color: #444; margin-bottom: 3px; }}
+  .card .valor {{ font-size: 14pt; font-weight: 700; color: #000; }}
+  .card.saldo {{ border: 2px solid #000; grid-column: span 2; }}
+  .card.saldo .valor {{ font-size: 18pt; font-weight: 900; }}
+  .card.saldo .label {{ font-weight: 700; }}
+  .card.negativo .valor {{ font-style: italic; }}
+  .subtexto {{ font-size: 8pt; color: #666; margin-top: 2px; }}
+
+  /* Separador */
+  hr {{ border: none; border-top: 2px solid #000; margin: 10px 0; }}
+
+  /* Tabela */
+  table {{ width: 100%; border-collapse: collapse; font-size: 9.5pt; }}
+  thead th {{ background: #000; color: #fff; font-weight: 700;
+               text-align: left; padding: 6px 8px; }}
+  tbody tr {{ border-bottom: 1px solid #ccc; }}
+  tbody tr:nth-child(even) {{ background: #f4f4f4; }}
+  tbody td {{ padding: 5px 8px; color: #000; }}
+  tr.desp td  {{ font-style: italic; }}
+  tr.saida td {{ font-style: italic; }}
+
+  @media print {{
+    body {{ -webkit-print-color-adjust: exact; print-color-adjust: exact; }}
+    .no-print {{ display: none; }}
+  }}
+  .btn-print {{ display: block; margin: 16px auto; padding: 10px 32px;
+                background: #000; color: #fff; border: none; border-radius: 6px;
+                font-size: 12pt; font-weight: 700; cursor: pointer; }}
+</style>
+</head>
+<body>
+
+<h1>RELATÓRIOS</h1>
+<h2>Fechamento do Dia {data_br}</h2>
+<h3>Resumo Financeiro do Dia</h3>
+
+<div class="cards">
+  <div class="card">
+    <div class="label">Total em Dinheiro</div>
+    <div class="valor">{m(tot_dinheiro)}</div>
+  </div>
+  <div class="card">
+    <div class="label">Total em Cartão (líquido)</div>
+    <div class="valor">{m(tot_cartao_lq)}</div>
+    <div class="subtexto">Descontado Taxa do Cartão</div>
+  </div>
+  <div class="card">
+    <div class="label">Total de Despesas (Pagas)</div>
+    <div class="valor">{m(desp_pagas)}</div>
+    <div class="subtexto">Despesas pagas com Dinheiro</div>
+  </div>
+  <div class="card">
+    <div class="label">Total de Despesas (Dia)</div>
+    <div class="valor">{m(desp_dia)}</div>
+    <div class="subtexto">Montante de despesas do dia</div>
+  </div>
+
+  <div class="card">
+    <div class="label">Total em PIX</div>
+    <div class="valor">{m(tot_pix)}</div>
+  </div>
+  <div class="card">
+    <div class="label">Total à Prazo</div>
+    <div class="valor">{m(tot_prazo)}</div>
+  </div>
+  <div class="card">
+    <div class="label"><strong>Saldo Líquido (Caixa)</strong></div>
+    <div class="valor">{m(saldo_liq_caixa)}</div>
+    <div class="subtexto">Dinheiro − Despesas Pagas</div>
+  </div>
+  <div class="card">
+    <div class="label">Saldo Total</div>
+    <div class="valor">{m(saldo_total)}</div>
+    <div class="subtexto">Dinheiro + Cartão + PIX</div>
+  </div>
+
+  <div class="card saldo">
+    <div class="label">Saldo Total (Líquido)</div>
+    <div class="valor">{m(saldo_total_liq)}</div>
+    <div class="subtexto">Dinheiro + Cartão + PIX − Taxas</div>
+  </div>
+  <div class="card {'negativo' if erro_saldo < 0 else ''}">
+    <div class="label">Erro de Caixa</div>
+    <div class="valor">{m(erro_saldo)}</div>
+    <div class="subtexto">Entrada: {m(erro_entrada)} / Saída: {m(erro_saida)}</div>
+  </div>
+</div>
+
+<hr>
+<h3>Histórico do Dia</h3>
+<table>
+  <thead>
+    <tr>
+      <th>Data/Hora</th>
+      <th>Nome</th>
+      <th>Prod.</th>
+      <th>Qtd.</th>
+      <th>Preço</th>
+      <th>Total</th>
+      <th>Pag.</th>
+    </tr>
+  </thead>
+  <tbody>
+    {linhas_html}
+  </tbody>
+</table>
+
+<br>
+<button class="btn-print no-print" onclick="window.print()">🖨 Imprimir</button>
+
+<script>
+  window.onload = function() {{ window.print(); }};
+</script>
+</body>
+</html>"""
+
+        # ── Salva em temp e abre no navegador ─────────────────────
+        tmp = tempfile.NamedTemporaryFile(
+            mode="w", suffix=".html", encoding="utf-8",
+            delete=False, prefix="fechamento_dia_",
+        )
+        tmp.write(html)
+        tmp.close()
+        webbrowser.open(f"file:///{tmp.name.replace(os.sep, '/')}")
+
     # ------------------------------------------------------------------
     # Edição de registro a partir do histórico
     # ------------------------------------------------------------------
@@ -877,14 +1146,12 @@ class RelatoriosView(ctk.CTkFrame):
     # Recarga do fechamento do dia (usada após editar/excluir)
     # ------------------------------------------------------------------
     def _recarregar_dia(self, data_iso: str, data_br: str):
-        """Reposiciona o date picker e recarrega o Fechamento do Dia."""
-        data_obj = datetime.datetime.strptime(data_br, "%d/%m/%Y").date()
-        if _TEM_TKCALENDAR:
-            self._de_dia.set_date(data_obj)
-        else:
-            self._entry_dia.delete(0, "end")
-            self._entry_dia.insert(0, data_br)
-        self._ver_dia()
+        """Recarrega o Fechamento do Dia com a data fornecida.
+
+        Chama _ver_dia diretamente passando a data, pois o widget DateEntry
+        pode ter sido destruído quando o container foi reconstruído.
+        """
+        self._ver_dia(data_iso=data_iso, data_br=data_br)
 
     # ------------------------------------------------------------------
     # Exclusão de registro a partir do histórico
